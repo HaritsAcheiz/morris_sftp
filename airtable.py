@@ -1,4 +1,3 @@
-import xml.etree.ElementTree as ET
 from pyairtable import Api
 from dotenv import load_dotenv
 import os
@@ -9,32 +8,20 @@ load_dotenv()
 @dataclass
 class AirtableAPI:
     api: Api = None
+    base_id: str = 'app3Ilt72ww0tN04k'
+    table_name = 'full_products'
 
-    def parse_xml(self, file_path, file_type):
-        items = list()
-        new_item = dict()
-        if file_type == 'full':
-            root = ET.parse(file_path)
-            for child in root.iter():
-                if child.text:
-                    new_item[child.tag] = child.text
-                    items.append(new_item)
-        elif file_type == 'inventory':
-            root = ET.parse(file_path)
-            for child in root.iter():
-                if child.text:
-                    new_item[child.tag] = child.text
-                    items.append(new_item)
-        return items
 
     def authenticate(self, token):
         self.api = Api(token)
 
 
-    def to_airtable(self, base_id, table_name):
-        table = self.api.table(base_id, table_name=table_name)
-        result = table.all()
-        print(result)
+    def select_table(self, base_id=None, table_name=None):
+        if base_id:
+            self.base_id = base_id
+        if table_name:
+            self.table_name = table_name
+        self.table = self.api.table(self.base_id, table_name=self.table_name)
 
 
 if __name__ == '__main__':
@@ -45,4 +32,9 @@ if __name__ == '__main__':
     # Airtable
     api = AirtableAPI()
     api.authenticate(os.getenv('AIRTABLE_TOKEN'))
-    api.to_airtable('app3Ilt72ww0tN04k', table_name='full_products')
+
+    # Select Table
+    api.select_table()
+
+    # Read all table
+    api.table.cre
