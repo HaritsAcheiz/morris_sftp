@@ -59,14 +59,14 @@ def main():
     username = os.getenv('MC_USER')
     password = os.getenv('MC_PASS')
     remote_path = '/'
-    local_path = 'D:/Naru/morris_sftp/data/'
+    local_path = '/data/'
     sftp = None
 
     try:
         sftp = connect_sftp(hostname, username, password)
 
         latest_full_product, latest_inventory = get_latest_files(sftp, remote_path)
-        os.makedirs('D:/Naru/morris_sftp/data', exist_ok=True)
+        os.makedirs('/data', exist_ok=True)
         if latest_full_product:
             download_file(sftp, os.path.join(remote_path, latest_full_product), os.path.join(local_path, latest_full_product))
         else:

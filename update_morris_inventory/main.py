@@ -10,7 +10,7 @@ if __name__ == '__main__':
     username = os.getenv('MC_USER')
     password = os.getenv('MC_PASS')
     remote_path = '/'
-    local_path = 'D:/Naru/morris_sftp/data/'
+    local_path = '/data/'
     sftp = None
 
     # Download file from SFTP

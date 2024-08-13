@@ -56,7 +56,7 @@ import_file_button.grid(column=3, row=1, sticky='E')
 
 
 # Ok Button
-check_img = PhotoImage(file='asset/vecteezy_check-mark-icon_15130843.png')
+check_img = PhotoImage(file='../asset/vecteezy_check-mark-icon_15130843.png')
 ok_button_img = check_img.subsample(400, 400)
 ok_button = Button(window,
                    text='Ok',
