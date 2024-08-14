@@ -2,24 +2,31 @@ import os
 from tkinter import *
 from tkinter import filedialog
 from shopifyapi import ShopifyApp
+from converter import to_shopify, csv_to_jsonl
 
 # Filebrowser function
 def browse_file():
     filename = filedialog.askopenfilename(initialdir='./',
         title='Select file to upload',
-        filetypes=[('Csv file', '*.csv'), ("All files", "*.*")]
+        filetypes=[('Excel files', '*.xlsx'), ('Csv file', '*.csv'), ('All files', '*.*')]
         )
 
     import_file_entry.insert(END, filename)
 
+
 def ok_button():
+    # convert morris file into shopify file
+    to_shopify(morris_file_path=import_file_entry.get())
+
+    # Bulk create Shopify product
     sa = ShopifyApp(store_name=store_name_entry.get(), access_token=access_token_entry.get())
     client = sa.create_session()
-    sa.csv_to_jsonl(csv_filename=import_file_entry.get(), jsonl_filename='bulk_op_vars.jsonl')
+    csv_to_jsonl(csv_filename='../data/temp.csv', jsonl_filename='bulk_op_vars.jsonl')
     staged_target = sa.generate_staged_target(client)
     sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
     sa.create_products(client, staged_target=staged_target)
-
+    # sa.webhook_subscription(client)
+    sa.pool_operation_status(client)
 
 # UI Build
 window = Tk()
