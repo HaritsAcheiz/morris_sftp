@@ -1,9 +1,7 @@
-# import all class from tkinter
 import os
 from tkinter import *
-
-# import filedialog method from tkinter
 from tkinter import filedialog
+from shopifyapi import ShopifyApp
 
 # Filebrowser function
 def browse_file():
@@ -15,7 +13,12 @@ def browse_file():
     import_file_entry.insert(END, filename)
 
 def ok_button():
-    pass
+    sa = ShopifyApp(store_name=store_name_entry.get(), access_token=access_token_entry.get())
+    client = sa.create_session()
+    sa.csv_to_jsonl(csv_filename=import_file_entry.get(), jsonl_filename='bulk_op_vars.jsonl')
+    staged_target = sa.generate_staged_target(client)
+    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    sa.create_products(client, staged_target=staged_target)
 
 
 # UI Build
@@ -56,7 +59,7 @@ import_file_button.grid(column=3, row=1, sticky='E')
 
 
 # Ok Button
-check_img = PhotoImage(file='./asset/vecteezy_check-mark-icon_15130843.png')
+check_img = PhotoImage(file='../asset/vecteezy_check-mark-icon_15130843.png')
 ok_button_img = check_img.subsample(400, 400)
 ok_button = Button(window,
                    text='Ok',
