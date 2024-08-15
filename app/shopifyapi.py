@@ -8,7 +8,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime, date
 
-load_dotenv()
+load_dotenv('/home/harits/Project/morris_sftp/.env')
 
 @dataclass
 class ShopifyApp:
@@ -35,7 +35,7 @@ class ShopifyApp:
                 }
                 '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
         print(response)
         print(response.json())
@@ -56,7 +56,7 @@ class ShopifyApp:
                 }
                 '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
         print(response)
         print(response.json())
@@ -119,7 +119,7 @@ class ShopifyApp:
             'mediaContentType': 'IMAGE'
             }
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, 'variables':variables})
         print(response)
         print(response.json())
@@ -147,7 +147,7 @@ class ShopifyApp:
 
         while 1:
             try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
                 print(response)
                 print(response.json())
@@ -185,7 +185,7 @@ class ShopifyApp:
                     }
                     '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
         print(response)
         print(response.json())
@@ -240,7 +240,7 @@ class ShopifyApp:
             "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
         }
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
         print(response)
@@ -347,7 +347,7 @@ class ShopifyApp:
                     }
         '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
         print(response)
         print(response.json())
@@ -371,7 +371,7 @@ class ShopifyApp:
                     }
                 '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
         print(response)
         print(response.json())
@@ -411,7 +411,7 @@ class ShopifyApp:
     #         'title': "Collection1"
     #     }
     #
-    #     response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+    #     response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
     #                            json={"query": mutation, 'variables': variables})
     #     print(response)
     #     print(response.json())
@@ -432,7 +432,7 @@ class ShopifyApp:
         }
         '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
         print(response)
         print(response.json())
@@ -462,7 +462,7 @@ class ShopifyApp:
         }    
         '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
         print(response)
         print(response.json())
@@ -486,7 +486,7 @@ class ShopifyApp:
                 }
                 '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
         print(response)
         print(response.json())
@@ -504,7 +504,7 @@ class ShopifyApp:
             }}
         '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
 
         response_data = response.json()
@@ -571,7 +571,7 @@ class ShopifyApp:
                          'after': after}
         retries = 0
         while retries <3:
-            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                    json={'query': query, 'variables': variables})
                                    # json={'query': query})
             try:
@@ -601,7 +601,7 @@ class ShopifyApp:
         # }
         # """
         #
-        # response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+        # response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
         #                        json={'query': mutation, 'variables': variables})
         pass
 
@@ -635,7 +635,7 @@ class ShopifyApp:
         print(variables)
         while 1:
             try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
                 print(response)
                 print(response.json())
@@ -662,7 +662,7 @@ class ShopifyApp:
 
         retries = 0
         while retries < 3:
-            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                    json={'query': query, 'variables': variables})
             try:
                 result = response.json()
@@ -703,7 +703,7 @@ class ShopifyApp:
 
         while 1:
             try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
                 print(response)
                 print(response.json())
@@ -749,7 +749,7 @@ class ShopifyApp:
 
         while 1:
             try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-01/graphql.json',
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
                 print(response)
                 print(response.json())
@@ -810,7 +810,7 @@ class ShopifyApp:
 
 if __name__ == '__main__':
 
-    s = ShopifyApp(store_name=os.getenv('SHOPIFY_STORENAME'), access_token=os.getenv('shopify_access_token'))
+    s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
     # path = './Product_By_Category2/*.csv'
     # filenames = glob(path)
@@ -834,9 +834,9 @@ if __name__ == '__main__':
     # df = df[df['Handle'].str.contains('lifting-forklift-frame')]
     # df.apply(lambda x: s.update_product(client=client, handle=x['Handle'], tags=x['Tags']), axis=1)
 
-    df = pd.read_csv('barcode_feed_5.csv')
-    print(df.columns)
-    df.apply(lambda x: s.update_variants(client=client, sku=x['Variant SKU'], barcode=x['New Barcode']), axis=1)
+    # df = pd.read_csv('barcode_feed_5.csv')
+    # print(df.columns)
+    # df.apply(lambda x: s.update_variants(client=client, sku=x['Variant SKU'], barcode=x['New Barcode']), axis=1)
 
     # s.check_access_scopes(client)
 
@@ -875,5 +875,5 @@ if __name__ == '__main__':
     # s.query_product(client)
     # s.get_publications(client)
     # s.get_collections(client)
-    # s.pool_operation_status(client)
+    s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))

@@ -1,3 +1,4 @@
+from itertools import product
 import pandas as pd
 import re
 import numpy as np
@@ -121,11 +122,24 @@ def to_shopify(morris_file_path):
     shopify_df.fillna('', inplace=True)
     # shopify_df.explode('')
 
-    shopify_df.to_csv('../data/temp.csv', index=False)
+    shopify_df.to_csv('./data/temp.csv', index=False)
+
+def fill_opt(opt_name, opt_values):
+    opt_attr = {'name': None, 'values': None}
+
+    return opt_attr
+
+def str_to_bool(s):
+    if s == 'True':
+         return True
+    elif s == 'False':
+         return False
+    else:
+         raise ValueError
 
 def csv_to_jsonl(csv_filename, jsonl_filename):
     print("Converting csv to jsonl file...")
-    df = pd.read_csv(csv_filename, nrows=2)
+    df = pd.read_csv(csv_filename, nrows=5)
     df.fillna('', inplace=True)
 
     # Create formatted dictionary
@@ -133,51 +147,55 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
     for index in df.index:
         print(df.iloc[index]['Option1 Name'])
         data_dict = {"input": dict(), "media": dict()}
-        data_dict['input']['handle'] = df.iloc[index]['Handle']
-        data_dict['input']['title'] = df.iloc[index]['Title']
+        # data_dict['input']['category'] = ''
+        data_dict['input']['claimOwnership'] = {'bundles': str_to_bool('False')}
+        # data_dict['input']['collectionToJoin'] = ''
+        # data_dict['input']['collectionToLeave'] = ''
+        data_dict['input']['combinedListingRole'] = 'PARENT'
+        data_dict['input']['customProductType'] = df.iloc[index]['Type']
         data_dict['input']['descriptionHtml'] = df.iloc[index]['Body (HTML)']
-        data_dict['input']['vendor'] = df.iloc[index]['Vendor']
-        data_dict['input']['productCategory'] = df.iloc[index]['Product Category']
+        data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
+        # data_dict['input']['giftCardTemplateSuffix'] = ''
+        data_dict['input']['handle'] = df.iloc[index]['Handle']
+        # data_dict['input']['id'] = ''
+        data_dict['input']['metafields'] = {#'id': '',
+                                            'key': 'enable_best_price',
+                                            'namespace': 'custom',
+                                            'type': 'boolean',
+                                            'value': str(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
+                                            }
+        opts = ['Option1 Name', 'Option2 Name', 'Option3 Name']
+        product_options = [fill_opt([df.iloc[index][opt]], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts if opt != '']
+        print(product_options)
+        # data_dict['input']['productOptions'] = [{#'linkedMetafields': '',
+        #                                          'name': df.iloc[index]['Option1 Name'],
+        #                                          # 'position': '',
+        #                                          'values': df.iloc[index]['Option1 Value']},
+        #                                         {#'linkedMetafields': '',
+        #                                          'name': df.iloc[index]['Option2 Name'],
+        #                                          #'position': '',
+        #                                          'values': df.iloc[index]['Option2 Value']},
+        #                                         {#'linkedMetafields': '',
+        #                                          'name': df.iloc[index]['Option3 Name'],
+        #                                          #'position': '',
+        #                                          'values': df.iloc[index]['Option3 Value']}
+        #                                        ]
+        data_dict['input']['productOptions'] = product_options
         data_dict['input']['productType'] = df.iloc[index]['Type']
-        data_dict['input']['tags'] = df.iloc[index]['Tags']
-        data_dict['input']['options'] = [df.iloc[index]['Option1 Name'],
-                                         df.iloc[index]['Option2 Name'],
-                                         df.iloc[index]['Option3 Name']
-                                         ]
-        # Convert symbol to unit
-        if df.iloc[index]['Variant Weight Unit'] == "g":
-            df.loc[index, 'Variant Weight Unit'] = "GRAMS"
-        elif df.iloc[index]['Variant Weight Unit'] == "kg":
-            df.loc[index, 'Variant Weight Unit'] = "KILOGRAMS"
-        elif df.iloc[index]['Variant Weight Unit'] == "lb":
-            df.loc[index, 'Variant Weight Unit'] = "POUNDS"
-
-
-        # Variant Attributes
-        data_dict['input']['variants'] = [
-            {'sku': df.iloc[index]['Variant SKU'],
-             'options': [
-                 df.iloc[index]['Option1 Value'],
-                 df.iloc[index]['Option2 Value'],
-                 df.iloc[index]['Option3 Value']
-             ],
-             'weight': int(df.iloc[index]['Variant Grams']),
-             'weightUnit': df.iloc[index]['Variant Weight Unit'],
-             'inventoryManagement': df.iloc[index]['Variant Inventory Tracker'].upper(),
-             'inventoryPolicy': df.iloc[index]['Variant Inventory Policy'].upper(),
-             'price': str(df.iloc[index]['Variant Price']),
-             'compareAtPrice': str(df.iloc[index]['Variant Compare At Price']),
-             'requiresShipping': bool(df.iloc[index]['Variant Requires Shipping']),
-             'taxable': bool(df.iloc[index]['Variant Taxable']),
-             'imageSrc': f"https:{df.iloc[index]['Image Src']}",
-             'title': 'Default'
-             }
-        ]
-
-        data_dict['input']['giftCard'] = bool(df.iloc[index]['Gift Card'])
+        data_dict['input']['redirectNewHandle'] = str_to_bool('False')
+        data_dict['input']['requiresSellingPlan'] = str_to_bool('False')
+        data_dict['input']['seo'] = {'description': df.iloc[index]['SEO Description'],
+                                     'title': df.iloc[index]['SEO Title']
+                                     }
         data_dict['input']['status'] = df.iloc[index]['Status'].upper()
-        data_dict['media'] = {'originalSource': f"https:{df.iloc[index]['Image Src']}", 'mediaContentType': 'IMAGE'}
-
+        data_dict['input']['tags'] = df.iloc[index]['Tags']
+        # data_dict['input']['templateSuffix'] = ''
+        data_dict['input']['title'] = df.iloc[index]['Title']
+        data_dict['input']['vendor'] = df.iloc[index]['Vendor']
+        data_dict['media'] = {'originalSource': f"https:{df.iloc[index]['Image Src']}",
+                              'mediaContentType': 'IMAGE',
+                              'alt': list(df.iloc[index]['Image Alt Text'])[0]
+                              }
         datas.append(data_dict.copy())
 
     print(datas)
@@ -187,6 +205,36 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
             json.dump(item, jsonlfile)
             jsonlfile.write('\n')
 
+# draft
+# data_dict['input']['productCategory'] = df.iloc[index]['Product Category']
+#         # Convert symbol to unit
+#         if df.iloc[index]['Variant Weight Unit'] == "g":
+#             df.loc[index, 'Variant Weight Unit'] = "GRAMS"
+#         elif df.iloc[index]['Variant Weight Unit'] == "kg":
+#             df.loc[index, 'Variant Weight Unit'] = "KILOGRAMS"
+#         elif df.iloc[index]['Variant Weight Unit'] == "lb":
+#             df.loc[index, 'Variant Weight Unit'] = "POUNDS"
+#         # Variant Attributes
+#         data_dict['input']['variants'] = [
+#             {'sku': df.iloc[index]['Variant SKU'],
+#              'options': [
+#                  df.iloc[index]['Option1 Value'],
+#                  df.iloc[index]['Option2 Value'],
+#                  df.iloc[index]['Option3 Value']
+#              ],
+#              'weight': int(df.iloc[index]['Variant Grams']),
+#              'weightUnit': df.iloc[index]['Variant Weight Unit'],
+#              'inventoryManagement': df.iloc[index]['Variant Inventory Tracker'].upper(),
+#              'inventoryPolicy': df.iloc[index]['Variant Inventory Policy'].upper(),
+#              'price': str(df.iloc[index]['Variant Price']),
+#              'compareAtPrice': str(df.iloc[index]['Variant Compare At Price']),
+#              'requiresShipping': bool(df.iloc[index]['Variant Requires Shipping']),
+#              'taxable': bool(df.iloc[index]['Variant Taxable']),
+#              'imageSrc': f"https:{df.iloc[index]['Image Src']}",
+#              'title': 'Default'
+#              }
+#         ]
+
 
 if __name__ == '__main__':
-    to_shopify('../data/All_Products_PWHSL.xlsx')
+    to_shopify('./data/All_Products_PWHSL.xlsx')
