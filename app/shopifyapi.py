@@ -216,25 +216,56 @@ class ShopifyApp:
         #             '''
 
         mutation = '''
-                            mutation ($stagedUploadPath: String!){
-                                bulkOperationRunMutation(
-                                    mutation: "mutation call($input: ProductInput!, $media: [CreateMediaInput!])
-                                    { productCreate(input: $input, media: $media) { product {id title variants(first: 10) {edges {node {id title inventoryQuantity }}}} userErrors { message field } } }",
-                                    stagedUploadPath: $stagedUploadPath
-                                )
-                                {
-                                    bulkOperation {
-                                        id
-                                        url
-                                        status
-                                    }
-                                    userErrors {
-                                        message
-                                        field
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($input: ProductInput!, $media: [CreateMediaInput!]) {
+                        productCreate(input: $input, media: $media) {
+                            product {
+                                id
+                                title
+                                variants(first: 10) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                            inventoryQuantity
+                                        }
                                     }
                                 }
                             }
-                            '''
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
+
+        # mutation = '''
+        #     mutation bulkOperationRunMutation($mutation: String!, $stagedUploadPath: String!) {
+        #         bulkOperationRunMutation(mutation: $mutation, stagedUploadPath: $stagedUploadPath) {
+        #             bulkOperation {
+        #                 # BulkOperation fields
+        #             }
+        #             userErrors {
+        #                 field
+        #                 message
+        #             }
+        #         }
+        #     }
 
         variables = {
             "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']

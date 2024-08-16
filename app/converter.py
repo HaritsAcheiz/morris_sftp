@@ -3,6 +3,9 @@ import pandas as pd
 import re
 import numpy as np
 import json
+from urllib.parse import quote, unquote
+from ast import literal_eval
+
 
 def to_handle(title):
     if (pd.isna(title)) | (title == 0):
@@ -18,6 +21,7 @@ def to_handle(title):
 def generate_category(*args):
     cat_list = [x for x in list(args[0]) if str(x) != 'nan']
     if len(cat_list) == 0:
+
         return ''
 
     return ' > '.join(cat_list)
@@ -33,20 +37,24 @@ def to_tags(theme):
 
 
 def generate_image(*args):
-    image_urls = [x for x in list(args[0]) if str(x) != 'nan']
+    image_urls = [quote(x, safe=':/') for x in list(args[0]) if str(x) != 'nan']
     if len(image_urls) == 0:
+
         return ''
 
     else:
+
         return image_urls
 
 
 def generate_alt_text(*args):
-    image_alt_text = [x.split('/')[-1].split('.')[0] for x in args[0]]
+    image_alt_text = [unquote(x).split('/')[-1].split('.')[0].strip() for x in args[0]]
     if len(image_alt_text) == 0:
+
         return ''
 
     else:
+
         return image_alt_text
 
 
@@ -118,24 +126,42 @@ def to_shopify(morris_file_path):
     shopify_df['Included / International'] = ''
     shopify_df['Price / International'] = ''
     shopify_df['Compare At Price / International'] = ''
-    shopify_df['Status'] = 'active'
+    shopify_df['Status'] = 'draft'
     shopify_df.fillna('', inplace=True)
-    # shopify_df.explode('')
 
     shopify_df.to_csv('./data/temp.csv', index=False)
 
-def fill_opt(opt_name, opt_values):
-    opt_attr = {'name': None, 'values': None}
 
-    return opt_attr
+def fill_opt(opt_name=None, opt_value=None):
+    if opt_name != '':
+        opt_attr = {'name': opt_name, 'values': {'name': opt_value}}
+
+        return opt_attr
+
+
+def fill_media(original_src, alt):
+    if original_src != '':
+        media_attr = {
+            'originalSource': original_src,
+            'mediaContentType': 'IMAGE',
+            'alt': alt
+        }
+
+        return media_attr
+
 
 def str_to_bool(s):
     if s == 'True':
+
          return True
+
     elif s == 'False':
+
          return False
+
     else:
          raise ValueError
+
 
 def csv_to_jsonl(csv_filename, jsonl_filename):
     print("Converting csv to jsonl file...")
@@ -145,13 +171,12 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
     # Create formatted dictionary
     datas = []
     for index in df.index:
-        print(df.iloc[index]['Option1 Name'])
-        data_dict = {"input": dict(), "media": dict()}
+        data_dict = {"input": dict(), "media": list()}
         # data_dict['input']['category'] = ''
         data_dict['input']['claimOwnership'] = {'bundles': str_to_bool('False')}
         # data_dict['input']['collectionToJoin'] = ''
         # data_dict['input']['collectionToLeave'] = ''
-        data_dict['input']['combinedListingRole'] = 'PARENT'
+        # data_dict['input']['combinedListingRole'] = 'PARENT'
         data_dict['input']['customProductType'] = df.iloc[index]['Type']
         data_dict['input']['descriptionHtml'] = df.iloc[index]['Body (HTML)']
         data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
@@ -165,23 +190,12 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
                                             'value': str(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
                                             }
         opts = ['Option1 Name', 'Option2 Name', 'Option3 Name']
-        product_options = [fill_opt([df.iloc[index][opt]], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts if opt != '']
-        print(product_options)
-        # data_dict['input']['productOptions'] = [{#'linkedMetafields': '',
-        #                                          'name': df.iloc[index]['Option1 Name'],
-        #                                          # 'position': '',
-        #                                          'values': df.iloc[index]['Option1 Value']},
-        #                                         {#'linkedMetafields': '',
-        #                                          'name': df.iloc[index]['Option2 Name'],
-        #                                          #'position': '',
-        #                                          'values': df.iloc[index]['Option2 Value']},
-        #                                         {#'linkedMetafields': '',
-        #                                          'name': df.iloc[index]['Option3 Name'],
-        #                                          #'position': '',
-        #                                          'values': df.iloc[index]['Option3 Value']}
-        #                                        ]
-        data_dict['input']['productOptions'] = product_options
-        data_dict['input']['productType'] = df.iloc[index]['Type']
+        product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+
+        if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+            product_options = [x for x in product_options if x is not None]
+            data_dict['input']['productOptions'] = product_options
+        # data_dict['input']['productType'] = df.iloc[index]['Type']
         data_dict['input']['redirectNewHandle'] = str_to_bool('False')
         data_dict['input']['requiresSellingPlan'] = str_to_bool('False')
         data_dict['input']['seo'] = {'description': df.iloc[index]['SEO Description'],
@@ -192,10 +206,9 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
         # data_dict['input']['templateSuffix'] = ''
         data_dict['input']['title'] = df.iloc[index]['Title']
         data_dict['input']['vendor'] = df.iloc[index]['Vendor']
-        data_dict['media'] = {'originalSource': f"https:{df.iloc[index]['Image Src']}",
-                              'mediaContentType': 'IMAGE',
-                              'alt': list(df.iloc[index]['Image Alt Text'])[0]
-                              }
+
+        media_list = [fill_media(literal_eval(df.iloc[index]['Image Src'])[i], literal_eval(df.iloc[index]['Image Alt Text'])[i]) for i in range(0, len(literal_eval(df.iloc[index]['Image Src'])))]
+        data_dict['media'] = media_list
         datas.append(data_dict.copy())
 
     print(datas)
@@ -204,36 +217,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
         for item in datas:
             json.dump(item, jsonlfile)
             jsonlfile.write('\n')
-
-# draft
-# data_dict['input']['productCategory'] = df.iloc[index]['Product Category']
-#         # Convert symbol to unit
-#         if df.iloc[index]['Variant Weight Unit'] == "g":
-#             df.loc[index, 'Variant Weight Unit'] = "GRAMS"
-#         elif df.iloc[index]['Variant Weight Unit'] == "kg":
-#             df.loc[index, 'Variant Weight Unit'] = "KILOGRAMS"
-#         elif df.iloc[index]['Variant Weight Unit'] == "lb":
-#             df.loc[index, 'Variant Weight Unit'] = "POUNDS"
-#         # Variant Attributes
-#         data_dict['input']['variants'] = [
-#             {'sku': df.iloc[index]['Variant SKU'],
-#              'options': [
-#                  df.iloc[index]['Option1 Value'],
-#                  df.iloc[index]['Option2 Value'],
-#                  df.iloc[index]['Option3 Value']
-#              ],
-#              'weight': int(df.iloc[index]['Variant Grams']),
-#              'weightUnit': df.iloc[index]['Variant Weight Unit'],
-#              'inventoryManagement': df.iloc[index]['Variant Inventory Tracker'].upper(),
-#              'inventoryPolicy': df.iloc[index]['Variant Inventory Policy'].upper(),
-#              'price': str(df.iloc[index]['Variant Price']),
-#              'compareAtPrice': str(df.iloc[index]['Variant Compare At Price']),
-#              'requiresShipping': bool(df.iloc[index]['Variant Requires Shipping']),
-#              'taxable': bool(df.iloc[index]['Variant Taxable']),
-#              'imageSrc': f"https:{df.iloc[index]['Image Src']}",
-#              'title': 'Default'
-#              }
-#         ]
 
 
 if __name__ == '__main__':
