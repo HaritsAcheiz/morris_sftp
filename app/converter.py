@@ -196,7 +196,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
             product_options = [x for x in product_options if x is not None]
             data_dict['input']['productOptions'] = product_options
         # data_dict['input']['productType'] = df.iloc[index]['Type']
-        data_dict['input']['redirectNewHandle'] = str_to_bool('False')
+        data_dict['input']['redirectNewHandle'] = str_to_bool('True')
         data_dict['input']['requiresSellingPlan'] = str_to_bool('False')
         data_dict['input']['seo'] = {'description': df.iloc[index]['SEO Description'],
                                      'title': df.iloc[index]['SEO Title']

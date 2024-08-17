@@ -5,6 +5,7 @@ from tkinter import filedialog
 from shopifyapi import ShopifyApp
 from converter import to_shopify, csv_to_jsonl
 from dataclasses import dataclass
+import time
 
 
 sa = None
@@ -31,10 +32,16 @@ def import_button():
     staged_target = sa.generate_staged_target(client)
     sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
     sa.create_products(client, staged_target=staged_target)
-
-
-def check_button():
+    created = False
+    # while not created:
+    time.sleep(300)
     response = sa.pool_operation_status(client)
+
+    # sa.get_products_id_by_handle()
+
+
+def close_button():
+    pass
 
 
 # UI Build
@@ -42,7 +49,8 @@ window = Tk()
 
 # Window Config
 window.title('Shopify Uploader')
-window.geometry('670x280')
+# window.geometry('670x280')
+window.geometry('930x280')
 window.config(bg='light grey', padx=15, pady=15)
 
 
@@ -78,18 +86,18 @@ import_file_button.grid(column=4, row=1, sticky='E')
 
 
 
-# Check Button
+# Close Button
 check_img = PhotoImage(file='./asset/magnifier-svgrepo-com.png')
 check_button_img = check_img.subsample(10, 10)
-check_button = Button(window,
-                   text='Check',
+close_button = Button(window,
+                   text='Close',
                    image=check_button_img,
                    compound='left',
                    bg='light grey',
                    width=70,
                    height=20,
-                   command=check_button)
-check_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
+                   command=close_button)
+close_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
 
 
 # Import Button

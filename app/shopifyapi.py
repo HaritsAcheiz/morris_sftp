@@ -41,7 +41,7 @@ class ShopifyApp:
         print(response.json())
         print('')
 
-    def query_product(self, client):
+    def query_products(self, client, ):
         print("Fetching product data...")
         query = '''
                 {
@@ -61,6 +61,35 @@ class ShopifyApp:
         print(response)
         print(response.json())
         print('')
+
+    def get_products_id_by_handle(self, client, handles):
+        print('Getting product id...')
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                products(first: 250, query: $query) {
+                    edges {
+                        node {
+                            handle
+                            id
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
+        variables = {'query': "handle:{}".format(handles)}
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
 
     def create_product(self, client):
         print("Creating product...")
@@ -407,6 +436,9 @@ class ShopifyApp:
         print(response)
         print(response.json())
         print('')
+
+        return response.json()
+
 
     def import_bulk_data(self, client, csv_filename, jsonl_filename):
         self.csv_to_jsonl(csv_filename=csv_filename, jsonl_filename=jsonl_filename)
@@ -903,8 +935,11 @@ if __name__ == '__main__':
     # s.import_bulk_data(client=client, csv_filename='result.csv', jsonl_filename='bulk_op_vars.jsonl')
     # s.webhook_subscription(client)
     # s.create_collection(client)
-    # s.query_product(client)
+    # s.query_products(client)
     # s.get_publications(client)
     # s.get_collections(client)
     s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))
+    # handles = ['rest-in-peace-cross-tombstone-1', 'trick-or-treat-yo-self-makeup-bag', '38-exit-ez-fx-kit-1']
+    # f_handles = ','.join(handles)
+    # s.get_products_id_by_handle(client, handles=f_handles)
