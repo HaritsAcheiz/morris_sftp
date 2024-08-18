@@ -15,6 +15,8 @@ class ShopifyApp:
     store_name: str = None
     access_token: str = None
 
+    # Create
+    ## Session
     def create_session(self):
         print("Creating session...")
         client = httpx.Client()
@@ -23,74 +25,11 @@ class ShopifyApp:
             'Content-Type': 'application/json'
         }
         client.headers.update(headers)
+
         return client
 
-    def query_shop(self, client):
-        print("Fetching shop data...")
-        query = '''
-                {
-                    shop{
-                        name
-                    }
-                }
-                '''
 
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
-
-    def query_products(self, client, ):
-        print("Fetching product data...")
-        query = '''
-                {
-                    products(first: 3) {
-                        edges {
-                            node {
-                                id
-                                title
-                            }
-                        }
-                    }
-                }
-                '''
-
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
-
-    def get_products_id_by_handle(self, client, handles):
-        print('Getting product id...')
-        query = '''
-            query(
-                $query: String
-            )
-            {
-                products(first: 250, query: $query) {
-                    edges {
-                        node {
-                            handle
-                            id
-                        }
-                    }
-                    pageInfo {
-                        endCursor
-                        hasNextPage
-                    }
-                }
-            }
-        '''
-        variables = {'query': "handle:{}".format(handles)}
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": query, 'variables':variables})
-        print(response)
-        print(response.json())
-        print('')
-
-
+    ## Product
     def create_product(self, client):
         print("Creating product...")
         mutation = '''
@@ -125,7 +64,7 @@ class ShopifyApp:
                             media: {
                                 originalSource: $mediaOriginalSource,
                                 mediaContentType: $mediaContentType
-                            }    
+                            }
                         )
                         {
                             product {
@@ -154,96 +93,8 @@ class ShopifyApp:
         print(response.json())
         print('')
 
-    def update_product(self, client, handle, tags):
-        id = self.query_product_by_handle(client, handle=handle)
-        mutation = '''
-        mutation productUpdate($input: ProductInput!) {
-                             productUpdate(input: $input)
-                             {
-                                userErrors {
-                                            field
-                                            message
-                                }
-                             }
-        } 
-        '''
-        variables = {
-            "input": {
-                "id": id,
-                "tags": tags
-            }
-        }
-
-        while 1:
-            try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                                       json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
-                break
-            except Exception as e:
-                print(e)
-
-    def generate_staged_target(self, client):
-        print("Creating stage upload...")
-        mutation = '''
-                    mutation {
-                        stagedUploadsCreate(
-                            input:{
-                                resource: BULK_MUTATION_VARIABLES,
-                                filename: "bulk_op_vars.jsonl",
-                                mimeType: "text/jsonl",
-                                httpMethod: POST
-                            }
-                        )
-                        {
-                            userErrors{
-                                field,
-                                message
-                            }
-                            stagedTargets{
-                                url,
-                                resourceUrl,
-                                parameters {
-                                    name,
-                                    value
-                                }    
-                            }
-                        }
-                    }
-                    '''
-
-        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": mutation})
-        print(response)
-        print(response.json())
-        print('')
-        return response.json()
-
     def create_products(self, client, staged_target):
         print('Creating products...')
-        # mutation = '''
-        #             mutation ($stagedUploadPath: String!){
-        #                 bulkOperationRunMutation(
-        #                     mutation: "mutation call($input: ProductInput!)
-        #                     { productCreate(input: $input) { product {id title variants(first: 10) {edges {node {id title inventoryQuantity }}}} userErrors { message field } } }",
-        #                     stagedUploadPath: $stagedUploadPath
-        #                 )
-        #                 {
-        #                     bulkOperation {
-        #                         id
-        #                         url
-        #                         status
-        #                     }
-        #                     userErrors {
-        #                         message
-        #                         field
-        #                     }
-        #                 }
-        #             }
-        #             '''
-
         mutation = '''
             mutation ($stagedUploadPath: String!){
                 bulkOperationRunMutation(
@@ -283,18 +134,234 @@ class ShopifyApp:
             }
         '''
 
-        # mutation = '''
-        #     mutation bulkOperationRunMutation($mutation: String!, $stagedUploadPath: String!) {
-        #         bulkOperationRunMutation(mutation: $mutation, stagedUploadPath: $stagedUploadPath) {
-        #             bulkOperation {
-        #                 # BulkOperation fields
-        #             }
-        #             userErrors {
-        #                 field
-        #                 message
-        #             }
-        #         }
-        #     }
+        variables = {
+            "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        print(response)
+        print(response.json())
+        print('')
+
+
+    ## Stage Upload
+    def generate_staged_target(self, client):
+        print("Creating stage upload...")
+        mutation = '''
+                    mutation {
+                        stagedUploadsCreate(
+                            input:{
+                                resource: BULK_MUTATION_VARIABLES,
+                                filename: "bulk_op_vars.jsonl",
+                                mimeType: "text/jsonl",
+                                httpMethod: POST
+                            }
+                        )
+                        {
+                            userErrors{
+                                field,
+                                message
+                            }
+                            stagedTargets{
+                                url,
+                                resourceUrl,
+                                parameters {
+                                    name,
+                                    value
+                                }
+                            }
+                        }
+                    }
+                    '''
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation})
+        print(response)
+        print(response.json())
+        print('')
+        return response.json()
+
+
+    # Read
+    ## Shop
+    def query_shop(self, client):
+        print("Fetching shop data...")
+        query = '''
+                {
+                    shop{
+                        name
+                    }
+                }
+                '''
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query})
+        print(response)
+        print(response.json())
+        print('')
+
+
+    ## Product
+    def query_products(self, client, ):
+        print("Fetching product data...")
+        query = '''
+                {
+                    products(first: 3) {
+                        edges {
+                            node {
+                                id
+                                title
+                            }
+                        }
+                    }
+                }
+                '''
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query})
+        print(response)
+        print(response.json())
+        print('')
+
+    def get_products_id_by_handle(self, client, handles):
+        print('Getting product id...')
+        f_handles = ','.join(handles)
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                products(first: 250, query: $query) {
+                    edges {
+                        node {
+                            handle
+                            id
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
+        variables = {'query': "handle:{}".format(f_handles)}
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
+    def get_products_id_by_sku(self, client, skus):
+        print('Getting product id...')
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                products(first: 250, query: $query) {
+                    edges {
+                        node {
+                            handle
+                            id
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
+        variables = {'query': "sku:{}".format(skus)}
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
+    # Update
+    ## Product
+    def update_product(self, client, handle, tags):
+        id = self.query_product_by_handle(client, handle=handle)
+        mutation = '''
+        mutation productUpdate($input: ProductInput!) {
+                             productUpdate(input: $input)
+                             {
+                                userErrors {
+                                            field
+                                            message
+                                }
+                             }
+        }
+        '''
+        variables = {
+            "input": {
+                "id": id,
+                "tags": tags
+            }
+        }
+
+        while 1:
+            try:
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                                       json={'query': mutation, 'variables': variables})
+                print(response)
+                print(response.json())
+                print('')
+                break
+            except Exception as e:
+                print(e)
+
+
+    def update_products(self, client, staged_target):
+        print('Updating products...')
+        mutation = '''
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($input: ProductInput!, $media: [CreateMediaInput!]) {
+                        productUpdate(input: $input, media: $media) {
+                            product {
+                                id
+                                title
+                                variants(first: 10) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                            inventoryQuantity
+                                        }
+                                    }
+                                }
+                            }
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
 
         variables = {
             "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
@@ -307,6 +374,8 @@ class ShopifyApp:
         print(response.json())
         print('')
 
+
+    # Bulk operation support
     def csv_to_jsonl(self, csv_filename, jsonl_filename):
         print("Converting csv to jsonl file...")
         df = pd.read_csv(csv_filename, nrows=2)
@@ -326,6 +395,7 @@ class ShopifyApp:
                                              df.iloc[index]['Option2 Name'],
                                              df.iloc[index]['Option3 Name']
                                              ]
+
             # Convert symbol to unit
             if df.iloc[index]['Variant Weight Unit'] == "g":
                 df.loc[index, 'Variant Weight Unit'] = "GRAMS"
@@ -938,7 +1008,7 @@ if __name__ == '__main__':
     # s.query_products(client)
     # s.get_publications(client)
     # s.get_collections(client)
-    s.pool_operation_status(client)
+    # s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))
     # handles = ['rest-in-peace-cross-tombstone-1', 'trick-or-treat-yo-self-makeup-bag', '38-exit-ez-fx-kit-1']
     # f_handles = ','.join(handles)

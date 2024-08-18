@@ -163,6 +163,25 @@ def str_to_bool(s):
          raise ValueError
 
 
+def get_skus():
+    shopify_df = pd.read_csv('./data/temp.csv')
+
+    return list(shopify_df['Variant SKU'])
+
+
+def get_handles():
+    shopify_df = pd.read_csv('./data/temp.csv')
+
+    return list(shopify_df['Handle'])
+
+
+def fill_product_id(product_id_df):
+    shopify_df = pd.read_csv('./data/temp.csv')
+    shopify_df = pd.merge(shopify_df, product_id_df, how='left', on='Handle')
+    shopify_df.fillna('', inplace=True)
+    shopify_df.to_csv('./data/temp.csv', index=False)
+
+
 def csv_to_jsonl(csv_filename, jsonl_filename):
     print("Converting csv to jsonl file...")
     df = pd.read_csv(csv_filename, nrows=5)

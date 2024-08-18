@@ -3,12 +3,13 @@ import os
 from tkinter import *
 from tkinter import filedialog
 from shopifyapi import ShopifyApp
-from converter import to_shopify, csv_to_jsonl
+from converter import to_shopify, csv_to_jsonl, fill_product_id, get_skus, get_handles
 from dataclasses import dataclass
 import time
 
 
 sa = None
+staged_target = None
 
 # Filebrowser function
 def browse_file():
@@ -20,24 +21,56 @@ def browse_file():
     import_file_entry.insert(END, filename)
 
 
-def import_button():
-    # convert morris file into shopify file
-    to_shopify(morris_file_path=import_file_entry.get())
-
-    # Bulk create Shopify product
+def import_status(client):
+    # Check Bulk Import status
+    print('Checking')
     global sa
+    response = sa.pool_operation_status(client)
+    if response['data']['currentBulkOperation']['status'] == 'COMPLETED':
+        created = True
+    else:
+        time.sleep(60)
+        created = False
+
+    return created
+
+
+def import_button():
+    # Create Shopify API Session
+    global sa
+    global staged_target
+
     sa = ShopifyApp(store_name=store_name_entry.get(), access_token=access_token_entry.get())
     client = sa.create_session()
-    csv_to_jsonl(csv_filename='./data/temp.csv', jsonl_filename='bulk_op_vars.jsonl')
-    staged_target = sa.generate_staged_target(client)
-    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    sa.create_products(client, staged_target=staged_target)
-    created = False
-    # while not created:
-    time.sleep(300)
-    response = sa.pool_operation_status(client)
 
-    # sa.get_products_id_by_handle()
+    # Get product Id by sku
+    # skus = get_skus()
+    # first_skus = ','.join(skus[0:251])
+    # first_sku = skus[0]
+    # product_ids = sa.get_products_id_by_sku(client, skus=first_sku)
+
+    # Get product_id by handle
+    handles = get_handles()
+    print(handles)
+    product_ids = sa.get_products_id_by_handle(client, handles=handles)
+    print(product_ids)
+
+    # Convert morris file into shopify file
+    # to_shopify(morris_file_path=import_file_entry.get())
+    # fill_product_id()
+
+    # Bulk create Shopify product
+    # csv_to_jsonl(csv_filename='./data/temp.csv', jsonl_filename='bulk_op_vars.jsonl')
+    # staged_target = sa.generate_staged_target(client)
+    # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    # sa.create_products(client, staged_target=staged_target)
+    # sa.update_products(client, staged_target=staged_target)
+    # created = False
+    # while not created:
+    #     created = import_status(client)
+
+    # Add price
+
 
 
 def close_button():
