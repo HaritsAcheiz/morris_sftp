@@ -7,16 +7,35 @@ from urllib.parse import quote, unquote
 from ast import literal_eval
 
 
-def to_handle(title):
+
+def to_handle(title, alt_title):
     if (pd.isna(title)) | (title == 0):
-        return ''
-    title.replace('-', '')
-    pattern = re.compile(r"\b[a-zA-Z0-9]+\b")
-    matches = pattern.findall(title.lower().strip())
-    result = '-'.join(matches)
+        if pd.isna(alt_title):
+            result = None
+        else:
+            alt_title.replace('-', '')
+            pattern = re.compile(r"\b[a-zA-Z0-9]+\b")
+            matches = pattern.findall(alt_title.lower().strip())
+            result = '-'.join(matches)
+    else:
+        title.replace('-', '')
+        pattern = re.compile(r"\b[a-zA-Z0-9]+\b")
+        matches = pattern.findall(title.lower().strip())
+        result = '-'.join(matches)
 
     return result
 
+
+def get_title(title, alt_title):
+    if (pd.isna(title)) | (title == 0):
+        if pd.isna(alt_title):
+            result = None
+        else:
+            result = alt_title
+    else:
+        result = title
+
+    return result
 
 def generate_category(*args):
     cat_list = [x for x in list(args[0]) if str(x) != 'nan']
@@ -61,8 +80,8 @@ def generate_alt_text(*args):
 def to_shopify(morris_file_path):
     morris_df = pd.read_excel(morris_file_path)
     shopify_df = pd.DataFrame()
-    shopify_df['Handle'] = morris_df['FormattedName'].apply(to_handle)
-    shopify_df['Title'] = morris_df['FormattedName']
+    shopify_df['Handle'] = morris_df.apply(lambda x: to_handle(x['ProductName'], alt_title=x['FormattedName']), axis=1)
+    shopify_df['Title'] = morris_df.apply(lambda x: get_title(x['FormattedName'], alt_title=x['ProductName']), axis=1)
     shopify_df['Body (HTML)'] = morris_df['FullDescription']
     shopify_df['Vendor'] = morris_df['Brand']
     shopify_df['Product Category'] = morris_df.apply(lambda x: generate_category((x['PrimaryCategory'],
@@ -127,9 +146,10 @@ def to_shopify(morris_file_path):
     shopify_df['Price / International'] = ''
     shopify_df['Compare At Price / International'] = ''
     shopify_df['Status'] = 'draft'
+    shopify_df.dropna(axis=0, subset='Handle', inplace=True, ignore_index=True)
     shopify_df.fillna('', inplace=True)
 
-    shopify_df.to_csv('./data/temp.csv', index=False)
+    shopify_df.to_csv('../data/temp.csv', index=False)
 
 
 def fill_opt(opt_name=None, opt_value=None):
@@ -164,22 +184,32 @@ def str_to_bool(s):
 
 
 def get_skus():
-    shopify_df = pd.read_csv('./data/temp.csv')
+    shopify_df = pd.read_csv('../data/temp.csv')
 
     return list(shopify_df['Variant SKU'])
 
 
 def get_handles():
-    shopify_df = pd.read_csv('./data/temp.csv')
+    shopify_df = pd.read_csv('../data/temp.csv')
+    handles = list(shopify_df['Handle'])
+    n = 250
+    chunked_handles = [handles[i:i + n] for i in range(0, len(handles), n)]
 
-    return list(shopify_df['Handle'])
+    return chunked_handles
 
 
-def fill_product_id(product_id_df):
-    shopify_df = pd.read_csv('./data/temp.csv')
-    shopify_df = pd.merge(shopify_df, product_id_df, how='left', on='Handle')
+def group_create_update():
+    # Fill product id
+    shopify_df = pd.read_csv('../data/temp.csv')
+    product_ids_df = pd.read_csv('../data/product_ids.csv')
+    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
-    shopify_df.to_csv('./data/temp.csv', index=False)
+
+    # group update create
+    create_df = shopify_df[shopify_df['id'] == '']
+    update_df = shopify_df[shopify_df['id'] != '']
+    create_df.to_csv('../data/create_products.csv')
+    update_df.to_csv('../data/update_products.csv')
 
 
 def csv_to_jsonl(csv_filename, jsonl_filename):
@@ -230,7 +260,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
         data_dict['media'] = media_list
         datas.append(data_dict.copy())
 
-    print(datas)
+    # print(datas)
 
     with open(jsonl_filename, 'w') as jsonlfile:
         for item in datas:
@@ -239,4 +269,4 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
 
 
 if __name__ == '__main__':
-    to_shopify('./data/All_Products_PWHSL.xlsx')
+    to_shopify('../data/All_Products_PWHSL.xlsx')

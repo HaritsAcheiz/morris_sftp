@@ -2,9 +2,9 @@ from json import load
 import os
 from tkinter import *
 from tkinter import filedialog
+import pandas as pd
 from shopifyapi import ShopifyApp
-from converter import to_shopify, csv_to_jsonl, fill_product_id, get_skus, get_handles
-from dataclasses import dataclass
+from converter import to_shopify, csv_to_jsonl, group_create_update, get_skus, get_handles
 import time
 
 
@@ -49,25 +49,41 @@ def import_button():
     # first_sku = skus[0]
     # product_ids = sa.get_products_id_by_sku(client, skus=first_sku)
 
-    # Get product_id by handle
-    handles = get_handles()
-    print(handles)
-    product_ids = sa.get_products_id_by_handle(client, handles=handles)
-    print(product_ids)
-
     # Convert morris file into shopify file
-    # to_shopify(morris_file_path=import_file_entry.get())
+    to_shopify(morris_file_path=import_file_entry.get())
     # fill_product_id()
 
+    # Get product_id by handle
+    chunked_handles = get_handles()
+    product_ids = list()
+    for handles in chunked_handles:
+        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+
+    extracted_product_ids = [x['node'] for x in product_ids]
+    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    product_id_handle_df.to_csv('../data/product_ids.csv', index=False)
+
+    # Create and Update grouping
+    group_create_update()
+
+
     # Bulk create Shopify product
-    # csv_to_jsonl(csv_filename='./data/temp.csv', jsonl_filename='bulk_op_vars.jsonl')
+    csv_to_jsonl(csv_filename='../data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
+    staged_target = sa.generate_staged_target(client)
+    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    sa.create_products(client, staged_target=staged_target)
+    created = False
+    while not created:
+        created = import_status(client)
+
+    # Bulk update Shopify product
+    # csv_to_jsonl(csv_filename='./data/update_products.csv', jsonl_filename='bulk_op_vars.jsonl')
     # staged_target = sa.generate_staged_target(client)
     # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    # sa.create_products(client, staged_target=staged_target)
     # sa.update_products(client, staged_target=staged_target)
-    # created = False
-    # while not created:
-    #     created = import_status(client)
+    # updated = False
+    # while not updated:
+    #     updated = import_status(client)
 
     # Add price
 
@@ -120,7 +136,7 @@ import_file_button.grid(column=4, row=1, sticky='E')
 
 
 # Close Button
-check_img = PhotoImage(file='./asset/magnifier-svgrepo-com.png')
+check_img = PhotoImage(file='../asset/magnifier-svgrepo-com.png')
 check_button_img = check_img.subsample(10, 10)
 close_button = Button(window,
                    text='Close',
@@ -134,7 +150,7 @@ close_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
 
 
 # Import Button
-rocket_img = PhotoImage(file='./asset/rocket-svgrepo-com.png')
+rocket_img = PhotoImage(file='../asset/rocket-svgrepo-com.png')
 import_button_img = rocket_img.subsample(10, 10)
 import_button = Button(window,
                    text='Import',
