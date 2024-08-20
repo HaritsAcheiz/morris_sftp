@@ -56,7 +56,7 @@ def to_tags(theme):
 
 
 def generate_image(*args):
-    image_urls = [quote(x, safe=':/') for x in list(args[0]) if str(x) != 'nan']
+    image_urls = [quote(x, safe=':/?&=') for x in list(args[0]) if str(x) != 'nan']
     if len(image_urls) == 0:
 
         return ''
@@ -149,7 +149,7 @@ def to_shopify(morris_file_path):
     shopify_df.dropna(axis=0, subset='Handle', inplace=True, ignore_index=True)
     shopify_df.fillna('', inplace=True)
 
-    shopify_df.to_csv('../data/temp.csv', index=False)
+    shopify_df.to_csv('./data/temp.csv', index=False)
 
 
 def fill_opt(opt_name=None, opt_value=None):
@@ -184,13 +184,13 @@ def str_to_bool(s):
 
 
 def get_skus():
-    shopify_df = pd.read_csv('../data/temp.csv')
+    shopify_df = pd.read_csv('./data/temp.csv')
 
     return list(shopify_df['Variant SKU'])
 
 
 def get_handles():
-    shopify_df = pd.read_csv('../data/temp.csv')
+    shopify_df = pd.read_csv('./data/temp.csv')
     handles = list(shopify_df['Handle'])
     n = 250
     chunked_handles = [handles[i:i + n] for i in range(0, len(handles), n)]
@@ -200,16 +200,16 @@ def get_handles():
 
 def group_create_update():
     # Fill product id
-    shopify_df = pd.read_csv('../data/temp.csv')
-    product_ids_df = pd.read_csv('../data/product_ids.csv')
+    shopify_df = pd.read_csv('./data/temp.csv')
+    product_ids_df = pd.read_csv('./data/product_ids.csv')
     shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
 
     # group update create
     create_df = shopify_df[shopify_df['id'] == '']
     update_df = shopify_df[shopify_df['id'] != '']
-    create_df.to_csv('../data/create_products.csv')
-    update_df.to_csv('../data/update_products.csv')
+    create_df.to_csv('./data/create_products.csv')
+    update_df.to_csv('./data/update_products.csv')
 
 
 def csv_to_jsonl(csv_filename, jsonl_filename):
@@ -269,4 +269,4 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
 
 
 if __name__ == '__main__':
-    to_shopify('../data/All_Products_PWHSL.xlsx')
+    to_shopify('./data/All_Products_PWHSL.xlsx')

@@ -61,14 +61,13 @@ def import_button():
 
     extracted_product_ids = [x['node'] for x in product_ids]
     product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    product_id_handle_df.to_csv('../data/product_ids.csv', index=False)
+    product_id_handle_df.to_csv('./data/product_ids.csv', index=False)
 
     # Create and Update grouping
     group_create_update()
 
-
     # Bulk create Shopify product
-    csv_to_jsonl(csv_filename='../data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
+    csv_to_jsonl(csv_filename='./data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
     staged_target = sa.generate_staged_target(client)
     sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
     sa.create_products(client, staged_target=staged_target)
@@ -136,7 +135,7 @@ import_file_button.grid(column=4, row=1, sticky='E')
 
 
 # Close Button
-check_img = PhotoImage(file='../asset/magnifier-svgrepo-com.png')
+check_img = PhotoImage(file='./asset/magnifier-svgrepo-com.png')
 check_button_img = check_img.subsample(10, 10)
 close_button = Button(window,
                    text='Close',
@@ -150,7 +149,7 @@ close_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
 
 
 # Import Button
-rocket_img = PhotoImage(file='../asset/rocket-svgrepo-com.png')
+rocket_img = PhotoImage(file='./asset/rocket-svgrepo-com.png')
 import_button_img = rocket_img.subsample(10, 10)
 import_button = Button(window,
                    text='Import',
