@@ -36,6 +36,10 @@ class Downloader:
         encoded_url = quote(url, safe=':/?&=')
         os.makedirs(output_dir, exist_ok=True)
         filepath = os.path.join(output_dir, f"{filename}.jpeg")
+        counter = 1
+        while os.path.isfile(filepath):
+            filepath = os.path.join(output_dir, f"{filename}({str(counter)}).jpeg")
+            counter += 1
 
         try:
             response = self.client.get(encoded_url)
@@ -52,17 +56,18 @@ class Downloader:
 
         return None
 
-    def extract_url(self, x):
-        image_urls = ast.literal_eval(x)
-        image_url = image_urls[0]
-
-        return image_url
+    def download_image(self, record):
+        print(record)
+        image_urls = ast.literal_eval(record['Image Src'])
+        for url in image_urls:
+            downloader.fetch(url, filename=record['Handle'])
 
 if __name__ == '__main__':
     downloader = Downloader()
     downloader.create_session()
 
-    df = pd.read_csv('../data/create_products.csv')[0:5]
-    df['url'] = df['Image Src'].apply(downloader.extract_url)
-    df.apply(lambda x: downloader.fetch(x['url'], filename=x['Handle']), axis=1)
+    df = pd.read_csv('../data/create_products.csv')[70:81]
+    for index in df.index:
+        downloader.download_image(df.iloc[index])
+    # df.apply(lambda x: downloader.fetch(x['url'], filename=x['Handle']), axis=1)
     downloader.client.close()
