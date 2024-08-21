@@ -62,7 +62,7 @@ if __name__ == '__main__':
     downloader = Downloader()
     downloader.create_session()
 
-    df = pd.read_csv('./data/create_products.csv')[0:5]
+    df = pd.read_csv('../data/create_products.csv')[0:5]
     df['url'] = df['Image Src'].apply(downloader.extract_url)
     df.apply(lambda x: downloader.fetch(x['url'], filename=x['Handle']), axis=1)
     downloader.client.close()
