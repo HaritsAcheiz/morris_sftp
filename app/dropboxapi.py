@@ -19,9 +19,9 @@ for file in glob.glob("*.jpeg"):
         print(f'Uploading...{file}')
         response = dropboxapi.files_upload(f=f.read(), path=path, autorename=True)
         print(response)
-        print(f'Creating link...{file}')
-        response = dropboxapi.sharing_create_shared_link_with_settings(path)
-        print(response)
+    print(f'Creating link...{file}')
+    response = dropboxapi.sharing_create_shared_link_with_settings(path)
+    print(response)
 response = dropboxapi.sharing_list_shared_links()
 print(response)
 

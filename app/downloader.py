@@ -60,13 +60,13 @@ class Downloader:
         print(record)
         image_urls = ast.literal_eval(record['Image Src'])
         for url in image_urls:
-            downloader.fetch(url, filename=record['Handle'])
+            self.fetch(url, filename=record['Handle'])
 
 if __name__ == '__main__':
     downloader = Downloader()
     downloader.create_session()
 
-    df = pd.read_csv('../data/create_products.csv')[70:81]
+    df = pd.read_csv('./data/create_products.csv')
     for index in df.index:
         downloader.download_image(df.iloc[index])
     # df.apply(lambda x: downloader.fetch(x['url'], filename=x['Handle']), axis=1)
