@@ -69,7 +69,7 @@ if __name__ == '__main__':
     downloader = Downloader()
     downloader.create_session()
 
-    df = pd.read_csv('../data/create_products.csv')
+    df = pd.read_csv('data/create_products.csv')
     for index in df.index:
         downloader.download_image(df.iloc[index])
     # df.apply(lambda x: downloader.fetch(x['url'], filename=x['Handle']), axis=1)

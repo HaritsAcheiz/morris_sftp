@@ -3,6 +3,7 @@ import os
 from tkinter import *
 from tkinter import filedialog
 import pandas as pd
+from dropboxapi import upload_and_get_link
 from shopifyapi import ShopifyApp
 from converter import to_shopify, csv_to_jsonl, group_create_update, get_skus, get_handles
 import time
@@ -14,7 +15,7 @@ staged_target = None
 
 # Filebrowser function
 def browse_file():
-    filename = filedialog.askopenfilename(initialdir='../',
+    filename = filedialog.askopenfilename(initialdir='',
         title='Select file to upload',
         filetypes=[('Excel files', '*.xlsx'), ('Csv file', '*.csv'), ('All files', '*.*')]
         )
@@ -44,25 +45,25 @@ def import_button():
     sa = ShopifyApp(store_name=store_name_entry.get(), access_token=access_token_entry.get())
     client = sa.create_session()
 
-    # Get product Id by sku
+    # =============================================Get product Id by sku==============================================
     # skus = get_skus()
     # first_skus = ','.join(skus[0:251])
     # first_sku = skus[0]
     # product_ids = sa.get_products_id_by_sku(client, skus=first_sku)
 
-    # Convert morris file into shopify file
+    # =====================================Convert morris file into shopify file======================================
     to_shopify(morris_file_path=import_file_entry.get())
     # fill_product_id()
 
     # =========================================Get product_id by handle===============================================
-    chunked_handles = get_handles()
-    product_ids = list()
-    for handles in chunked_handles:
-        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+    # chunked_handles = get_handles()
+    # product_ids = list()
+    # for handles in chunked_handles:
+    #     product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
 
-    extracted_product_ids = [x['node'] for x in product_ids]
-    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    product_id_handle_df.to_csv('../data/product_ids.csv', index=False)
+    # extracted_product_ids = [x['node'] for x in product_ids]
+    # product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    # product_id_handle_df.to_csv('data/product_ids.csv', index=False)
 
     # =======================================Create and Update grouping===============================================
     group_create_update()
@@ -74,23 +75,24 @@ def import_button():
 
 
     # ===============================update products images download==================================================
-    # create_df = pd.read_csv('../data/create_products.csv')
+    # create_df = pd.read_csv('data/create_products.csv')
     # for index in create_df.index:
     #     download_agent.download_image(create_df.iloc[index])
     # download_agent.client.close()
 
     # ===============================update products images download==================================================
-    # update_df = pd.read_csv('../data/update_products.csv')
+    # update_df = pd.read_csv('data/update_products.csv')
     # for index in update_df.index:
     #     download_agent.download_image(update_df.iloc[index])
     # download_agent.client.close()
 
 
     # =======================================Upload Image to Dropbox==================================================
+    upload_and_get_link()
 
 
     # =====================================Bulk create Shopify product================================================
-    # csv_to_jsonl(csv_filename='../data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
+    # csv_to_jsonl(csv_filename='data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
     # staged_target = sa.generate_staged_target(client)
     # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
     # sa.create_products(client, staged_target=staged_target)
@@ -100,7 +102,7 @@ def import_button():
 
 
     # =====================================Bulk update Shopify product================================================
-    # csv_to_jsonl(csv_filename='../data/update_products.csv', jsonl_filename='bulk_op_vars.jsonl')
+    # csv_to_jsonl(csv_filename='data/update_products.csv', jsonl_filename='bulk_op_vars.jsonl')
     # staged_target = sa.generate_staged_target(client)
     # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
     # sa.update_products(client, staged_target=staged_target)
@@ -159,7 +161,7 @@ import_file_button.grid(column=4, row=1, sticky='E')
 
 
 # Close Button
-check_img = PhotoImage(file='../asset/magnifier-svgrepo-com.png')
+check_img = PhotoImage(file='asset/magnifier-svgrepo-com.png')
 check_button_img = check_img.subsample(10, 10)
 close_button = Button(window,
                    text='Close',
@@ -173,7 +175,7 @@ close_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
 
 
 # Import Button
-rocket_img = PhotoImage(file='../asset/rocket-svgrepo-com.png')
+rocket_img = PhotoImage(file='asset/rocket-svgrepo-com.png')
 import_button_img = rocket_img.subsample(10, 10)
 import_button = Button(window,
                    text='Import',
