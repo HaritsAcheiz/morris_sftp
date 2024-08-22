@@ -12,7 +12,7 @@ load_dotenv()
 dropboxapi = Dropbox(oauth2_access_token=os.getenv('DROPBOX_ACCESS_TOKEN'), app_key=os.getenv('DROPBOX_APP_KEY'),
                      app_secret=os.getenv('DROPBOX_APP_SECRET'))
 
-os.chdir("./data/images")
+os.chdir("../data/images")
 for file in glob.glob("*.jpeg"):
     with open(file, 'rb') as f:
         path = f'/{file}'
