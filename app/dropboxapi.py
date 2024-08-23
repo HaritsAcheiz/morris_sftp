@@ -7,30 +7,31 @@ import os
 from dotenv import load_dotenv
 from dropbox import Dropbox
 import pandas as pd
+from dropbox.sharing import SharedLinkSettings, RequestedVisibility
 
 load_dotenv()
 
 def upload_and_get_link():
     dropboxapi = Dropbox(oauth2_access_token=os.getenv('DROPBOX_ACCESS_TOKEN'), app_key=os.getenv('DROPBOX_APP_KEY'),
                      app_secret=os.getenv('DROPBOX_APP_SECRET'))
-    os.chdir("data/images")
+    os.chdir("app/data/images")
     records = list()
     for file in glob.glob("*.jpeg")[0:3]:
         record = dict()
         with open(file, 'rb') as f:
             path = f'/{file}'
             print(f'Uploading...{file}')
-            response = dropboxapi.files_upload(f=f.read(), path=path, autorename=True)
+            dropboxapi.files_upload(f=f.read(), path=path, autorename=True)
         print(f'Creating link...{file}')
-        response = dropboxapi.sharing_create_shared_link_with_settings(path)
+        settings = SharedLinkSettings(requested_visibility=RequestedVisibility.public)
+        response = dropboxapi.sharing_create_shared_link_with_settings(path, settings=settings)
         if '(' in response.name:
-            record['handle'] = response.name.split(' (')[0]
+            record['handle'] = response.name.split('(')[0]
         else:
-            record['handle'] = response.name
+            record['handle'] = response.name.split('.j')[0]
         record['filename'] = response.name
-        record['image_url'] = response.url
+        record['image_url'] = response.url + '&raw=1'
         records.append(record.copy())
-    print(records)
     image_df = pd.DataFrame.from_records(records)
     image_df.to_csv('../product_images.csv', index=False)
 

@@ -12,6 +12,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
+os.chdir('../')
 
 # Filebrowser function
 def browse_file():
