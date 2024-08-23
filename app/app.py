@@ -2,10 +2,11 @@ from json import load
 import os
 from tkinter import *
 from tkinter import filedialog
+import dropbox
 import pandas as pd
 from dropboxapi import upload_and_get_link
 from shopifyapi import ShopifyApp
-from converter import to_shopify, csv_to_jsonl, group_create_update, get_skus, get_handles
+from converter import *
 import time
 from downloader import Downloader
 
@@ -53,7 +54,7 @@ def import_button():
     # product_ids = sa.get_products_id_by_sku(client, skus=first_sku)
 
     # =====================================Convert morris file into shopify file======================================
-    to_shopify(morris_file_path=import_file_entry.get())
+    # to_shopify(morris_file_path=import_file_entry.get())
     # fill_product_id()
 
     # =========================================Get product_id by handle===============================================
@@ -67,7 +68,7 @@ def import_button():
     # product_id_handle_df.to_csv('data/product_ids.csv', index=False)
 
     # =======================================Create and Update grouping===============================================
-    group_create_update()
+    # group_create_update()
 
 
     # =============================================Download Image=====================================================
@@ -75,21 +76,26 @@ def import_button():
     download_agent.create_session()
 
 
-    # ===============================update products images download==================================================
-    # create_df = pd.read_csv('data/create_products.csv')
+    # ===============================create products images download==================================================
+    create_df = pd.read_csv('data/create_products.csv')
     # for index in create_df.index:
     #     download_agent.download_image(create_df.iloc[index])
     # download_agent.client.close()
 
+
     # ===============================update products images download==================================================
-    # update_df = pd.read_csv('data/update_products.csv')
-    # for index in update_df.index:
-    #     download_agent.download_image(update_df.iloc[index])
-    # download_agent.client.close()
+    update_df = pd.read_csv('data/update_products.csv')
+    for index in update_df.index:
+        download_agent.download_image(update_df.iloc[index])
+    download_agent.client.close()
 
 
     # =======================================Upload Image to Dropbox==================================================
-    upload_and_get_link()
+    image_df = upload_and_get_link()
+
+
+    # =======================================Merge create product with image ================================================
+    create_df = merge_images(create_df, image_df)
 
 
     # =====================================Bulk create Shopify product================================================
@@ -101,6 +107,9 @@ def import_button():
     # while not created:
     #     created = import_status(client)
 
+
+    # =======================================Merge update product with image ================================================
+    # merge_images(update_df, image_df)
 
     # =====================================Bulk update Shopify product================================================
     # csv_to_jsonl(csv_filename='data/update_products.csv', jsonl_filename='bulk_op_vars.jsonl')

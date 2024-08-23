@@ -12,11 +12,11 @@ from dropbox.sharing import SharedLinkSettings, RequestedVisibility
 load_dotenv()
 
 def upload_and_get_link():
-    dropboxapi = Dropbox(oauth2_access_token=os.getenv('DROPBOX_ACCESS_TOKEN'), app_key=os.getenv('DROPBOX_APP_KEY'),
-                     app_secret=os.getenv('DROPBOX_APP_SECRET'))
-    os.chdir("app/data/images")
+    dropboxapi = Dropbox(oauth2_access_token=os.getenv('HARITS_DROPBOX_TOKEN'), app_key=os.getenv('HARITS_DROPBOX_APP_KEY'),
+                     app_secret=os.getenv('HARITS_DROPBOX_APP_SECRET'))
+    os.chdir("../data/images")
     records = list()
-    for file in glob.glob("*.jpeg")[0:3]:
+    for file in glob.glob("*.jpeg")[0:5]:
         record = dict()
         with open(file, 'rb') as f:
             path = f'/{file}'
@@ -39,6 +39,7 @@ def upload_and_get_link():
     # print(response)
 
     dropboxapi.close()
+    return image_df
 
 if __name__ == '__main__':
     upload_and_get_link()

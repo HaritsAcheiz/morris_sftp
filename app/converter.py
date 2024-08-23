@@ -267,6 +267,14 @@ def csv_to_jsonl(csv_filename, jsonl_filename):
             json.dump(item, jsonlfile)
             jsonlfile.write('\n')
 
+def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
+    grouped_image_df = image_df.groupby('handle')['image_urls'].agg(list)
+    print(grouped_image_df)
+    product_df.merge(grouped_image_df, how='left', left_on='Handle', right_on='handle')
+    print(product_df)
+    # return product_df
+
+
 
 if __name__ == '__main__':
     to_shopify('data/All_Products_PWHSL.xlsx')
