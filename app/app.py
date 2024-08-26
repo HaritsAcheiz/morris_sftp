@@ -95,7 +95,7 @@ def import_button():
 
 
     # =======================================Merge create product with image ================================================
-    create_df = merge_images(create_df, image_df)
+    create_df = merge_images(create_df.iloc[0:5], image_df)
 
 
     # =====================================Bulk create Shopify product================================================
