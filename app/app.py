@@ -13,7 +13,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
-os.chdir('../')
+# os.chdir('../')
 
 # Filebrowser function
 def browse_file():
@@ -58,7 +58,7 @@ def import_button():
     # fill_product_id()
 
     # =========================================Get product_id by handle===============================================
-    # chunked_handles = get_handles()
+    # chunked_handles = get_handles('data/temp.csv')
     # product_ids = list()
     # for handles in chunked_handles:
     #     product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
@@ -72,8 +72,8 @@ def import_button():
 
 
     # =============================================Download Image=====================================================
-    download_agent = Downloader()
-    download_agent.create_session()
+    # download_agent = Downloader()
+    # download_agent.create_session()
 
 
     # ===============================create products images download==================================================
@@ -84,28 +84,55 @@ def import_button():
 
 
     # ===============================update products images download==================================================
-    update_df = pd.read_csv('data/update_products.csv')
-    for index in update_df.index:
-        download_agent.download_image(update_df.iloc[index])
-    download_agent.client.close()
+    # update_df = pd.read_csv('data/update_products.csv')
+    # for index in update_df.index:
+    #     download_agent.download_image(update_df.iloc[index])
+    # download_agent.client.close()
 
 
     # =======================================Upload Image to Dropbox==================================================
-    image_df = upload_and_get_link()
+    # upload_and_get_link()
 
 
     # =======================================Merge create product with image ================================================
-    create_df = merge_images(create_df.iloc[0:5], image_df)
+    # image_df = pd.read_csv('data/product_images.csv')
+    # merge_images(create_df.iloc[0:101], image_df)
 
 
     # =====================================Bulk create Shopify product================================================
-    # csv_to_jsonl(csv_filename='data/create_products.csv', jsonl_filename='bulk_op_vars.jsonl')
-    # staged_target = sa.generate_staged_target(client)
-    # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    # sa.create_products(client, staged_target=staged_target)
-    # created = False
-    # while not created:
-    #     created = import_status(client)
+    csv_to_jsonl(csv_filename='data/create_products_with_images.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pc')
+    staged_target = sa.generate_staged_target(client)
+    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    sa.create_products(client, staged_target=staged_target)
+    created = False
+    while not created:
+        created = import_status(client)
+
+
+    # =========================================Get product_id by handle===============================================
+    chunked_handles = get_handles('data/create_products.csv')
+    product_ids = list()
+    for handles in chunked_handles:
+        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+
+    extracted_product_ids = [x['node'] for x in product_ids]
+    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
+
+
+
+    # ========================================Fill create product_id =================================================
+    fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv')
+
+
+    # =====================================Bulk create Shopify variant================================================
+    csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vc')
+    staged_target = sa.generate_staged_target(client)
+    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    sa.create_variants(client, staged_target=staged_target)
+    created = False
+    while not created:
+        created = import_status(client)
 
 
     # =======================================Merge update product with image ================================================

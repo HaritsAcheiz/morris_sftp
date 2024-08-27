@@ -146,6 +146,59 @@ class ShopifyApp:
         print('')
 
 
+    def create_variants(self, client, staged_target):
+        print('Creating products...')
+        mutation = '''
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($productId: ID!, $media: [ProductVariantsBulkInput!]) {
+                        productVariantsBulkCreate(productId: $productId, variants: $variants) {
+                            product {
+                                id
+                                title
+                                variants(first: 10) {
+                                    edges {
+                                        node {
+                                            id
+                                            title
+                                            inventoryQuantity
+                                        }
+                                    }
+                                }
+                            }
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
+
+        variables = {
+            "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        print(response)
+        print(response.json())
+        print('')
+
+
     ## Stage Upload
     def generate_staged_target(self, client):
         print("Creating stage upload...")
