@@ -159,6 +159,11 @@ def fill_opt(opt_name=None, opt_value=None):
 
         return opt_attr
 
+def fill_opt_var(opt_name=None, opt_value=None):
+    if opt_name != '':
+        opt_attr = {'name': opt_value, 'optionName': opt_name}
+
+        return opt_attr
 
 def fill_media(original_src, alt):
     if original_src != '':
@@ -172,16 +177,16 @@ def fill_media(original_src, alt):
 
 
 def str_to_bool(s):
-    if s == 'True':
+    if (s == 'True') | (s == 'true'):
 
          return True
 
-    elif s == 'False':
+    elif (s == 'False') | (s == 'false'):
 
          return False
 
     else:
-         raise ValueError
+         return s
 
 
 def get_skus():
@@ -238,8 +243,11 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             variants = list()
             metafields = list()
             variant = dict()
-            variant['Barcode'] = str(df.iloc[index]['Variant Barcode'])
-            variant['CompareAtPrice'] = str(df.iloc[index]['Variant Compare At Price'])
+            variant['barcode'] = str(df.iloc[index]['Variant Barcode'])
+            if df.iloc[index]['Variant Compare At Price'] == '':
+                pass
+            else:
+                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']),2)
             # variant['id'] = df.iloc[index]['id']
 
             variant_inv_item = dict()
@@ -248,22 +256,32 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             # variant_inv_item['countryHarmonizedSystemCodes'] = df.iloc[index]['Variant Barcode']
             # variant_inv_item['harmonizedSystemCode'] = df.iloc[index]['Variant Barcode']
 
-            variant_measure = {'weight': {'unit': '', 'value':None}}
+            variant_measure = {'weight': {'unit': '', 'value':''}}
             variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
-            variant_measure['weight']['value'] = str(df.iloc[index]['Variant Grams'])
+            variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
 
             variant_inv_item['measurement'] = variant_measure
             # variant_inv_item['provinceCodeOfOrigin'] = df.iloc[index]['Variant Barcode']
-            variant_inv_item['requiresShipping'] = df.iloc[index]['Variant Requires Shipping']
+            # variant_inv_item['requiresShipping'] = df.iloc[index]['Variant Requires Shipping']
+            variant_inv_item['requiresShipping'] = str_to_bool('true')
             variant_inv_item['sku'] = df.iloc[index]['Variant SKU']
             variant_inv_item['tracked'] = tracker_mapper[df.iloc[index]['Variant Inventory Tracker']]
             variant['inventoryItem'] = variant_inv_item
-            variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy']
+            variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
 
-            variant_inv_qty = {'availableQuantity': {'availableQuantity': None, 'locationId':None}}
-            variant_inv_qty['availableQuantity'] = str(df.iloc[index]['Variant Inventory Qty'])
-            # variant_inv_qty['locationId'] = df.iloc[index]['Variant Barcode']
-            variant['inventoryQuantities'] = variant_inv_qty
+            # variants_inv_qty = list()
+            # variant_inv_qty = dict()
+            # if df.iloc[index]['Variant Inventory Qty'] == '':
+            #     pass
+            # else:
+            #     variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'])
+            #     variant_inv_qty['locationId'] = df.iloc[index]['Variant Barcode']
+            # if len(variant_inv_qty) > 0:
+            #     variants_inv_qty.append(variant_inv_qty)
+            #     variant['inventoryQuantities'] = variants_inv_qty
+            # else:
+            #     pass
+
             # variant['mediaId'] = df.iloc[index]['Variant Barcode']
             # variant['mediaSrc'] = df.iloc[index]['Variant Barcode']
 
@@ -277,20 +295,25 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             # variant['metafields'] = metafields
 
+            product_options = [fill_opt_var(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+
+            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+                product_options = [x for x in product_options if x is not None]
+                variant['optionValues'] = product_options
+
             # opt_value = dict()
             # opt_values = list()
-            # opt_value['id'] = df.iloc[index]['Variant Barcode']
+            # # opt_value['id'] = df.iloc[index]['Variant Barcode']
             # opt_value['name'] = df.iloc[index]['Opt']
-            # opt_value['optionId'] = 'enable_best_price'
+            # # opt_value['optionId'] = 'enable_best_price'
             # opt_value['optionName'] = 'boolean'
             # opt_value['value'] = True
             # opt_values.append(opt_value)
 
-            # variant['optionValues'] = opt_values
-
-            variant['price'] = str(df.iloc[index]['Variant Price'])
+            variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
             # variant['taxCode'] = df.iloc[index]['Variant Barcode']
-            variant['taxable'] = df.iloc[index]['Variant Taxable']
+            # variant['taxable'] = df.iloc[index]['Variant Taxable']
+            variant['taxable'] = str_to_bool('true')
             variants.append(variant)
 
             data_dict['variants'] = variants
@@ -336,7 +359,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['input']['vendor'] = df.iloc[index]['Vendor']
 
             media_list = []
-            media = {'alt': '', 'mediaContentType': 'IMAGE', 'originalSource': ''}
+            media = dict()
             print(df.iloc[index]['Link'])
             print(df.iloc[index]['Image Alt Text'])
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
@@ -350,9 +373,8 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                     media['mediaContentType'] = 'IMAGE'
                     media['originalSource'] = links[i]
                     media_list.append(media)
+                data_dict['media'] = media_list
 
-            # media_list = [fill_media(literal_eval(df.iloc[index]['Link'])[i], literal_eval(df.iloc[index]['Image Alt Text'])[i]) for i in range(0, len(literal_eval(df.iloc[index]['Link'])))]
-            data_dict['media'] = media_list
             datas.append(data_dict.copy())
 
     else:
@@ -363,7 +385,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
     if datas:
         with open(jsonl_filename, 'w') as jsonlfile:
             for item in datas:
-                json.dump(item, jsonlfile)
+                json.dump(item, jsonlfile, default=str)
                 jsonlfile.write('\n')
 
 def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
@@ -372,7 +394,6 @@ def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
     print(grouped_image_df)
     result_df = product_df.merge(grouped_image_df, how='left', left_on='Handle', right_on='Handle')
     result_df.to_csv('data/create_products_with_images.csv', index=False)
-
 
 
 if __name__ == '__main__':
