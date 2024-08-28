@@ -151,7 +151,7 @@ class ShopifyApp:
         mutation = '''
             mutation ($stagedUploadPath: String!){
                 bulkOperationRunMutation(
-                    mutation: "mutation call($productId: ID!, $media: [ProductVariantsBulkInput!]) {
+                    mutation: "mutation call($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
                         productVariantsBulkCreate(productId: $productId, variants: $variants) {
                             product {
                                 id

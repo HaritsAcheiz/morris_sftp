@@ -238,19 +238,19 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             variants = list()
             metafields = list()
             variant = dict()
-            variant['Barcode'] = df.iloc[index]['Variant Barcode']
-            variant['CompareAtPrice'] = df.iloc[index]['Variant Compare At Price']
+            variant['Barcode'] = str(df.iloc[index]['Variant Barcode'])
+            variant['CompareAtPrice'] = str(df.iloc[index]['Variant Compare At Price'])
             # variant['id'] = df.iloc[index]['id']
 
             variant_inv_item = dict()
-            variant_inv_item['cost'] = df.iloc[index]['Cost per item']
+            variant_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
             # variant_inv_item['countryCodeOfOrigin'] = df.iloc[index]['Variant Barcode']
             # variant_inv_item['countryHarmonizedSystemCodes'] = df.iloc[index]['Variant Barcode']
             # variant_inv_item['harmonizedSystemCode'] = df.iloc[index]['Variant Barcode']
 
-            variant_measure = {'weight': {'unit':'', 'value':None}}
+            variant_measure = {'weight': {'unit': '', 'value':None}}
             variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
-            variant_measure['weight']['value'] = df.iloc[index]['Variant Grams']
+            variant_measure['weight']['value'] = str(df.iloc[index]['Variant Grams'])
 
             variant_inv_item['measurement'] = variant_measure
             # variant_inv_item['provinceCodeOfOrigin'] = df.iloc[index]['Variant Barcode']
@@ -261,7 +261,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy']
 
             variant_inv_qty = {'availableQuantity': {'availableQuantity': None, 'locationId':None}}
-            variant_inv_qty['availableQuantity'] = df.iloc[index]['Variant Inventory Qty']
+            variant_inv_qty['availableQuantity'] = str(df.iloc[index]['Variant Inventory Qty'])
             # variant_inv_qty['locationId'] = df.iloc[index]['Variant Barcode']
             variant['inventoryQuantities'] = variant_inv_qty
             # variant['mediaId'] = df.iloc[index]['Variant Barcode']
@@ -288,9 +288,10 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             # variant['optionValues'] = opt_values
 
-            variant['price'] = df.iloc[index]['Variant Price']
+            variant['price'] = str(df.iloc[index]['Variant Price'])
             # variant['taxCode'] = df.iloc[index]['Variant Barcode']
             variant['taxable'] = df.iloc[index]['Variant Taxable']
+            variants.append(variant)
 
             data_dict['variants'] = variants
             datas.append(data_dict.copy())
@@ -334,12 +335,30 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['input']['title'] = df.iloc[index]['Title']
             data_dict['input']['vendor'] = df.iloc[index]['Vendor']
 
-            media_list = [fill_media(literal_eval(df.iloc[index]['Link'])[i], literal_eval(df.iloc[index]['Image Alt Text'])[i]) for i in range(0, len(literal_eval(df.iloc[index]['Link'])))]
+            media_list = []
+            media = {'alt': '', 'mediaContentType': 'IMAGE', 'originalSource': ''}
+            print(df.iloc[index]['Link'])
+            print(df.iloc[index]['Image Alt Text'])
+            if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
+                media_list.append(media)
+            else:
+                links = literal_eval(df.iloc[index]['Link'])
+                alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
+                print(links)
+                for i in range(0, len(links)):
+                    media['alt'] = alt_texts[i]
+                    media['mediaContentType'] = 'IMAGE'
+                    media['originalSource'] = links[i]
+                    media_list.append(media)
+
+            # media_list = [fill_media(literal_eval(df.iloc[index]['Link'])[i], literal_eval(df.iloc[index]['Image Alt Text'])[i]) for i in range(0, len(literal_eval(df.iloc[index]['Link'])))]
             data_dict['media'] = media_list
             datas.append(data_dict.copy())
 
     else:
         print('Mode value is not available')
+
+    print(datas)
 
     if datas:
         with open(jsonl_filename, 'w') as jsonlfile:

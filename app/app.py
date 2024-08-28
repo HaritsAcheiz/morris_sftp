@@ -13,7 +13,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
-# os.chdir('../')
+os.chdir('../')
 
 # Filebrowser function
 def browse_file():
@@ -54,21 +54,21 @@ def import_button():
     # product_ids = sa.get_products_id_by_sku(client, skus=first_sku)
 
     # =====================================Convert morris file into shopify file======================================
-    # to_shopify(morris_file_path=import_file_entry.get())
+    to_shopify(morris_file_path=import_file_entry.get())
     # fill_product_id()
 
     # =========================================Get product_id by handle===============================================
-    # chunked_handles = get_handles('data/temp.csv')
-    # product_ids = list()
-    # for handles in chunked_handles:
-    #     product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+    chunked_handles = get_handles('data/temp.csv')
+    product_ids = list()
+    for handles in chunked_handles:
+        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
 
-    # extracted_product_ids = [x['node'] for x in product_ids]
-    # product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    # product_id_handle_df.to_csv('data/product_ids.csv', index=False)
+    extracted_product_ids = [x['node'] for x in product_ids]
+    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    product_id_handle_df.to_csv('data/product_ids.csv', index=False)
 
     # =======================================Create and Update grouping===============================================
-    # group_create_update()
+    group_create_update()
 
 
     # =============================================Download Image=====================================================
@@ -94,9 +94,9 @@ def import_button():
     # upload_and_get_link()
 
 
-    # =======================================Merge create product with image ================================================
-    # image_df = pd.read_csv('data/product_images.csv')
-    # merge_images(create_df.iloc[0:101], image_df)
+    # =======================================Merge create product with image ==========================================
+    image_df = pd.read_csv('data/product_images.csv')
+    merge_images(create_df, image_df)
 
 
     # =====================================Bulk create Shopify product================================================
@@ -120,7 +120,6 @@ def import_button():
     product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
 
-
     # ========================================Fill create product_id =================================================
     fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv')
 
@@ -135,7 +134,7 @@ def import_button():
         created = import_status(client)
 
 
-    # =======================================Merge update product with image ================================================
+    # =======================================Merge update product with image =========================================
     # merge_images(update_df, image_df)
 
     # =====================================Bulk update Shopify product================================================
