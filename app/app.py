@@ -13,7 +13,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
-# os.chdir('../')
+os.chdir('../')
 
 # Filebrowser function
 def browse_file():
@@ -33,7 +33,7 @@ def import_status(client):
     if response['data']['currentBulkOperation']['status'] == 'COMPLETED':
         created = True
     else:
-        time.sleep(60)
+        time.sleep(10)
         created = False
 
     return created

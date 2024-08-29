@@ -8,7 +8,7 @@ import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime, date
 
-load_dotenv('/home/harits/Project/morris_sftp/.env')
+load_dotenv()
 
 @dataclass
 class ShopifyApp:
@@ -151,8 +151,8 @@ class ShopifyApp:
         mutation = '''
             mutation ($stagedUploadPath: String!){
                 bulkOperationRunMutation(
-                    mutation: "mutation call($productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
-                        productVariantsBulkCreate(productId: $productId, variants: $variants) {
+                    mutation: "mutation call($productId: ID!, $strategy:ProductVariantsBulkCreateStrategy, $variants: [ProductVariantsBulkInput!]!) {
+                        productVariantsBulkCreate(productId: $productId, strategy: $strategy, variants: $variants) {
                             product {
                                 id
                                 title
@@ -277,6 +277,28 @@ class ShopifyApp:
         print(response)
         print(response.json())
         print('')
+
+    def query_locations(self, client):
+        print("Fetching product data...")
+        query = '''
+                {
+                    locations(first: 3) {
+                        edges {
+                            node {
+                                id
+                            }
+                        }
+                    }
+                }
+                '''
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
 
     def get_products_id_by_handle(self, client, handles):
         print('Getting product id...')
@@ -998,6 +1020,7 @@ if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
+    s.query_locations(client)
     # path = './Product_By_Category2/*.csv'
     # filenames = glob(path)
     # print(filenames)

@@ -230,7 +230,7 @@ def fill_product_id(product_filepath, product_id_filepath):
 
 def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
     print("Converting csv to jsonl file...")
-    df = pd.read_csv(csv_filename, nrows=5)
+    df = pd.read_csv(csv_filename, nrows=101)
     df.fillna('', inplace=True)
     datas = None
     opts = ['Option1 Name', 'Option2 Name', 'Option3 Name']
@@ -238,7 +238,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
         # Create formatted dictionary
         datas = []
         for index in df.index:
-            data_dict = {"productId": str, "variants": list()}
+            data_dict = {"productId": str, "strategy": "REMOVE_STANDALONE_VARIANT", "variants": list()}
             data_dict['productId'] = df.iloc[index]['id']
             variants = list()
             metafields = list()
@@ -247,7 +247,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             if df.iloc[index]['Variant Compare At Price'] == '':
                 pass
             else:
-                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']),2)
+                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']), 2)
             # variant['id'] = df.iloc[index]['id']
 
             variant_inv_item = dict()
@@ -256,7 +256,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             # variant_inv_item['countryHarmonizedSystemCodes'] = df.iloc[index]['Variant Barcode']
             # variant_inv_item['harmonizedSystemCode'] = df.iloc[index]['Variant Barcode']
 
-            variant_measure = {'weight': {'unit': '', 'value':''}}
+            variant_measure = {'weight': {'unit': '', 'value': 0.0}}
             variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
             variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
 
@@ -301,15 +301,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 product_options = [x for x in product_options if x is not None]
                 variant['optionValues'] = product_options
 
-            # opt_value = dict()
-            # opt_values = list()
-            # # opt_value['id'] = df.iloc[index]['Variant Barcode']
-            # opt_value['name'] = df.iloc[index]['Opt']
-            # # opt_value['optionId'] = 'enable_best_price'
-            # opt_value['optionName'] = 'boolean'
-            # opt_value['value'] = True
-            # opt_values.append(opt_value)
-
             variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
             # variant['taxCode'] = df.iloc[index]['Variant Barcode']
             # variant['taxable'] = df.iloc[index]['Variant Taxable']
@@ -325,7 +316,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
         for index in df.index:
             data_dict = {"input": dict(), "media": list()}
             # data_dict['input']['category'] = ''
-            data_dict['input']['claimOwnership'] = {'bundles': str_to_bool('False')}
+            # data_dict['input']['claimOwnership'] = {'bundles': str_to_bool('False')}
             # data_dict['input']['collectionToJoin'] = ''
             # data_dict['input']['collectionToLeave'] = ''
             # data_dict['input']['combinedListingRole'] = 'PARENT'
@@ -339,13 +330,14 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                                                 'key': 'enable_best_price',
                                                 'namespace': 'custom',
                                                 'type': 'boolean',
-                                                'value': str(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
+                                                'value': str_to_bool(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
                                                 }
             product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
 
             if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
                 product_options = [x for x in product_options if x is not None]
                 data_dict['input']['productOptions'] = product_options
+
             # data_dict['input']['productType'] = df.iloc[index]['Type']
             data_dict['input']['redirectNewHandle'] = str_to_bool('True')
             data_dict['input']['requiresSellingPlan'] = str_to_bool('False')
@@ -365,11 +357,15 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
+
                 links = literal_eval(df.iloc[index]['Link'])
                 alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
                 print(links)
                 for i in range(0, len(links)):
-                    media['alt'] = alt_texts[i]
+                    try:
+                        media['alt'] = alt_texts[i]
+                    except:
+                        media['alt'] = ''
                     media['mediaContentType'] = 'IMAGE'
                     media['originalSource'] = links[i]
                     media_list.append(media)
