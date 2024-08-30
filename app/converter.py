@@ -5,6 +5,7 @@ import numpy as np
 import json
 from urllib.parse import quote, unquote
 from ast import literal_eval
+from html import unescape
 
 weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OUNCES'}
 tracker_mapper = {'shopify': True, '': False}
@@ -78,12 +79,24 @@ def generate_alt_text(*args):
         return image_alt_text
 
 
+def to_body_html(desc):
+    if not isinstance(desc, str):
+        desc_str = str(desc)
+    else:
+        desc_str = desc
+    result = unescape(desc_str).replace("ORIENTAL TRADING", "TRENDTIMES")\
+        .replace("morriscostumes.com", "trendtimes.com")\
+        .replace("br", "<br/>")\
+        .replace("Oriental Trading", "Trendtimes")
+
+    return result
+
 def to_shopify(morris_file_path):
     morris_df = pd.read_excel(morris_file_path)
     shopify_df = pd.DataFrame()
     shopify_df['Handle'] = morris_df.apply(lambda x: to_handle(x['ProductName'], alt_title=x['FormattedName']), axis=1)
     shopify_df['Title'] = morris_df.apply(lambda x: get_title(x['FormattedName'], alt_title=x['ProductName']), axis=1)
-    shopify_df['Body (HTML)'] = morris_df['FullDescription']
+    shopify_df['Body (HTML)'] = morris_df['FullDescription'].apply(to_body_html)
     shopify_df['Vendor'] = morris_df['Brand']
     shopify_df['Product Category'] = morris_df.apply(lambda x: generate_category((x['PrimaryCategory'],
                                                                                   x['SecondaryCategory'],
