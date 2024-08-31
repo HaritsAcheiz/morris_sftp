@@ -7,6 +7,7 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime, date
+from converter import get_handles
 
 load_dotenv()
 
@@ -676,29 +677,51 @@ class ShopifyApp:
         print(response.json())
         print('')
 
-    def get_collections(self, client):
+    def get_collections(self, client, cursor=None):
         print('Getting collection list...')
-        query = '''
-                query {
-                    collections(first: 10){
-                        edges{
-                            node{
-                                id
-                                title
-                                handle
-                                updatedAt
-                                productsCount
+        if cursor:
+            query = '''
+                    query getAllCollection($after: String){
+                        collections(first: 250, after: $after){
+                            nodes{
+                                  handle
+                                  id
+                                  title
                             }
+                            pageInfo{
+                                     endCursor
+                                     hasNextPage
+                            }
+
                         }
                     }
-                }
-                '''
+            '''
+        else:
+            query = '''
+                    query {
+                        collections(first: 250){
+                            nodes{
+                                  handle
+                                  id
+                                  title
+                            }
+                            pageInfo{
+                                     endCursor
+                                     hasNextPage
+                            }
+
+                        }
+                    }
+            '''
+        variables = {'after': cursor}
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": query})
+                               json={"query": query, "variables": variables})
         print(response)
         print(response.json())
         print('')
+
+        return response.json()
 
     def check_bulk_operation_status(self, client, bulk_operation_id):
         query = f'''
@@ -1020,7 +1043,7 @@ if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
-    s.query_locations(client)
+    # s.query_locations(client)
     # path = './Product_By_Category2/*.csv'
     # filenames = glob(path)
     # print(filenames)
@@ -1083,7 +1106,33 @@ if __name__ == '__main__':
     # s.create_collection(client)
     # s.query_products(client)
     # s.get_publications(client)
-    # s.get_collections(client)
+
+    # ==============================================get all collections===================================
+    # has_next_page = True
+    # cursor = None
+    # results = list()
+    # while has_next_page:
+    #     response = s.get_collections(client, cursor=cursor)
+    #     records = response['data']['collections']['nodes']
+    #     results.extend(records)
+    #     has_next_page = response['data']['collections']['pageInfo']['hasNextPage']
+    #     cursor = response['data']['collections']['pageInfo']['endCursor']
+    # results_df = pd.DataFrame.from_records(results)
+    # results_df.to_csv('data/collection_list.csv', index=False)
+
+    # ============================================get product id by handle===============================
+    # collection_df = pd.read_csv('data/collection_list.csv')
+    chunked_handles = get_handles('data/collection_list.csv')
+    product_ids = list()
+    for handles in chunked_handles:
+        product_ids.extend(s.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+    print(f'count:{len(product_ids)}')
+    extracted_product_ids = [x['node'] for x in product_ids]
+    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    product_id_handle_df.to_csv('data/product_as_collection_ids.csv', index=False)
+
+
+
     # s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))
     # handles = ['rest-in-peace-cross-tombstone-1', 'trick-or-treat-yo-self-makeup-bag', '38-exit-ez-fx-kit-1']

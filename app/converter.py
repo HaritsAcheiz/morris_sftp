@@ -210,7 +210,10 @@ def get_skus():
 
 def get_handles(filepath):
     shopify_df = pd.read_csv(filepath)
-    handles = list(shopify_df['Handle'])
+    try:
+        handles = list(shopify_df['Handle'])
+    except:
+        handles = list(shopify_df['handle'])
     n = 250
     chunked_handles = [handles[i:i + n] for i in range(0, len(handles), n)]
 
@@ -325,6 +328,68 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
     elif mode == 'pc':
         # Create formatted dictionary
+        datas = []
+        for index in df.index:
+            data_dict = {"input": dict(), "media": list()}
+            # data_dict['input']['category'] = ''
+            # data_dict['input']['claimOwnership'] = {'bundles': str_to_bool('False')}
+            # data_dict['input']['collectionToJoin'] = ''
+            # data_dict['input']['collectionToLeave'] = ''
+            # data_dict['input']['combinedListingRole'] = 'PARENT'
+            data_dict['input']['customProductType'] = df.iloc[index]['Type']
+            data_dict['input']['descriptionHtml'] = df.iloc[index]['Body (HTML)']
+            data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
+            # data_dict['input']['giftCardTemplateSuffix'] = ''
+            data_dict['input']['handle'] = df.iloc[index]['Handle']
+            # data_dict['input']['id'] = ''
+            data_dict['input']['metafields'] = {#'id': '',
+                                                'key': 'enable_best_price',
+                                                'namespace': 'custom',
+                                                'type': 'boolean',
+                                                'value': str_to_bool(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
+                                                }
+            product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+
+            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+                product_options = [x for x in product_options if x is not None]
+                data_dict['input']['productOptions'] = product_options
+
+            # data_dict['input']['productType'] = df.iloc[index]['Type']
+            data_dict['input']['redirectNewHandle'] = str_to_bool('True')
+            data_dict['input']['requiresSellingPlan'] = str_to_bool('False')
+            data_dict['input']['seo'] = {'description': df.iloc[index]['SEO Description'],
+                                         'title': df.iloc[index]['SEO Title']
+                                         }
+            data_dict['input']['status'] = df.iloc[index]['Status'].upper()
+            data_dict['input']['tags'] = df.iloc[index]['Tags']
+            # data_dict['input']['templateSuffix'] = ''
+            data_dict['input']['title'] = df.iloc[index]['Title']
+            data_dict['input']['vendor'] = df.iloc[index]['Vendor']
+
+            media_list = []
+            media = dict()
+            print(df.iloc[index]['Link'])
+            print(df.iloc[index]['Image Alt Text'])
+            if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
+                media_list.append(media)
+            else:
+
+                links = literal_eval(df.iloc[index]['Link'])
+                alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
+                print(links)
+                for i in range(0, len(links)):
+                    try:
+                        media['alt'] = alt_texts[i]
+                    except:
+                        media['alt'] = ''
+                    media['mediaContentType'] = 'IMAGE'
+                    media['originalSource'] = links[i]
+                    media_list.append(media)
+                data_dict['media'] = media_list
+
+            datas.append(data_dict.copy())
+
+    elif mode == 'pu':
         datas = []
         for index in df.index:
             data_dict = {"input": dict(), "media": list()}
