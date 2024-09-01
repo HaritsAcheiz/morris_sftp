@@ -364,6 +364,30 @@ class ShopifyApp:
         return response.json()
 
 
+    def query_inventories(self):
+        print('Getting inventories...', end='')
+        query = '''
+            query inventoryItems {
+                inventoryItems(first: 250) {
+                    edges {
+                        node {
+                            id
+                            tracked
+                            sku
+                        }
+                    }
+                }
+            }
+        '''
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
     # Update
     ## Product
     def update_product(self, client, handle, tags):
@@ -1022,21 +1046,16 @@ class ShopifyApp:
 
         variables = {'handle': "{}".format(handle)}
 
-        retries = 0
-        while retries < 3:
-            response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
                                    json={'query': query, 'variables': variables})
-            try:
-                result = response.json()
-                print("Product data collected!")
-                break
-            except Exception as e:
-                print(e)
-                retries += 1
-                sleep(1)
-                continue
 
-        return result['data']['productByHandle']['id']
+        print(response)
+        print(response.json())
+        print('')
+
+
+        return response.json()
+
 
 
 if __name__ == '__main__':
@@ -1122,16 +1141,19 @@ if __name__ == '__main__':
 
     # ============================================get product id by handle===============================
     # collection_df = pd.read_csv('data/collection_list.csv')
-    chunked_handles = get_handles('data/collection_list.csv')
-    product_ids = list()
-    for handles in chunked_handles:
-        product_ids.extend(s.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
-    print(f'count:{len(product_ids)}')
-    extracted_product_ids = [x['node'] for x in product_ids]
-    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    product_id_handle_df.to_csv('data/product_as_collection_ids.csv', index=False)
+    # chunked_handles = get_handles('data/collection_list.csv')
+    # product_ids = list()
+    # for handles in chunked_handles:
+    #     product_ids.extend(s.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+    # print(f'count:{len(product_ids)}')
+    # extracted_product_ids = [x['node'] for x in product_ids]
+    # product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    # product_id_handle_df.to_csv('data/product_as_collection_ids.csv', index=False)
 
+    # ============================================get inventories===============================
+    # s.query_inventories()
 
+    s.query_product_by_handle(client, handle='game-of-thrones-drogon-prop')
 
     # s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))
