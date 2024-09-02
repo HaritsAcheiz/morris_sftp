@@ -208,16 +208,27 @@ def get_skus():
     return list(shopify_df['Variant SKU'])
 
 
-def get_handles(filepath):
+def get_handles(filepath, nrows=250):
     shopify_df = pd.read_csv(filepath)
     try:
         handles = list(shopify_df['Handle'])
     except:
         handles = list(shopify_df['handle'])
-    n = 250
-    chunked_handles = [handles[i:i + n] for i in range(0, len(handles), n)]
+    chunked_handles = [handles[i:i + nrows] for i in range(0, len(handles), nrows)]
 
     return chunked_handles
+
+
+def chunk_data(filepath, usecols=None, nrows=250):
+    chunked_df = list()
+    if usecols:
+        df = pd.read_csv(filepath, usecols=usecols)
+    else:
+        df = pd.read_csv(filepath)
+    for start in range(0, len(df), nrows):
+        chunked_df.append(df[start:start + nrows])
+
+    return chunked_df
 
 
 def group_create_update():
@@ -246,7 +257,7 @@ def fill_product_id(product_filepath, product_id_filepath):
 
 def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
     print("Converting csv to jsonl file...")
-    df = pd.read_csv(csv_filename, nrows=101)
+    df = pd.read_csv(csv_filename)
     df.fillna('', inplace=True)
     datas = None
     opts = ['Option1 Name', 'Option2 Name', 'Option3 Name']
@@ -272,9 +283,12 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             # variant_inv_item['countryHarmonizedSystemCodes'] = df.iloc[index]['Variant Barcode']
             # variant_inv_item['harmonizedSystemCode'] = df.iloc[index]['Variant Barcode']
 
-            variant_measure = {'weight': {'unit': '', 'value': 0.0}}
-            variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
-            variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
+            variant_measure = {'weight': {'unit': 'GRAMS', 'value': 0.0}}
+            try:
+                variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
+                variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
+            except:
+                pass
 
             variant_inv_item['measurement'] = variant_measure
             # variant_inv_item['provinceCodeOfOrigin'] = df.iloc[index]['Variant Barcode']
@@ -317,7 +331,11 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 product_options = [x for x in product_options if x is not None]
                 variant['optionValues'] = product_options
 
-            variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+            try:
+                variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+            except:
+                variant['price'] = 0.00
+
             # variant['taxCode'] = df.iloc[index]['Variant Barcode']
             # variant['taxable'] = df.iloc[index]['Variant Taxable']
             variant['taxable'] = str_to_bool('true')
@@ -472,8 +490,12 @@ def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
 
 if __name__ == '__main__':
     # to_shopify('data/All_Products_PWHSL.xlsx')
+    #
+    # product_df = pd.read_csv('data/create_products.csv')
+    # image_df = pd.read_csv('data/product_images.csv')
+    # merge_images(product_df, image_df=image_df)
+    # csv_to_jsonl()
 
-    product_df = pd.read_csv('data/create_products.csv')
-    image_df = pd.read_csv('data/product_images.csv')
-    merge_images(product_df, image_df=image_df)
-    csv_to_jsonl()
+    chunked_df = chunk_data('../data/create_products.csv', nrows=250)
+    for df in chunked_df:
+        print(df.head())

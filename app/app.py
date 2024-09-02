@@ -77,7 +77,7 @@ def import_button():
 
 
     # ===============================create products images download==================================================
-    create_df = pd.read_csv('data/create_products.csv')
+    # create_df = pd.read_csv('data/create_products.csv')
     # for index in create_df.index:
     #     download_agent.download_image(create_df.iloc[index])
     # download_agent.client.close()
@@ -93,46 +93,44 @@ def import_button():
     # =======================================Upload Image to Dropbox==================================================
     # upload_and_get_link()
 
+    # ====================================Handle limit with chunked data==============================================
+    chunked_df = chunk_data('data/create_products.csv')
+    for create_df in chunked_df:
 
-    # =======================================Merge create product with image ==========================================
-    image_df = pd.read_csv('data/product_images.csv')
-    merge_images(create_df, image_df)
+        # =======================================Merge create product with image =========================================
+        image_df = pd.read_csv('data/product_images.csv')
+        merge_images(create_df, image_df)
 
+        # =====================================Bulk create Shopify product================================================
+        csv_to_jsonl(csv_filename='data/create_products_with_images.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pc')
+        staged_target = sa.generate_staged_target(client)
+        sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        sa.create_products(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = import_status(client)
 
-    # =====================================Bulk create Shopify product================================================
-    csv_to_jsonl(csv_filename='data/create_products_with_images.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pc')
-    staged_target = sa.generate_staged_target(client)
-    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    sa.create_products(client, staged_target=staged_target)
-    created = False
-    while not created:
-        created = import_status(client)
+        # =========================================Get product_id by handle===============================================
+        chunked_handles = get_handles('data/create_products.csv')
+        product_ids = list()
+        for handles in chunked_handles:
+            product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
 
+        extracted_product_ids = [x['node'] for x in product_ids]
+        product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+        product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
-    # =========================================Get product_id by handle===============================================
-    chunked_handles = get_handles('data/create_products.csv')
-    product_ids = list()
-    for handles in chunked_handles:
-        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+        # ========================================Fill create product_id =================================================
+        fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv')
 
-    extracted_product_ids = [x['node'] for x in product_ids]
-    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
-
-
-    # ========================================Fill create product_id =================================================
-    fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv')
-
-
-    # =====================================Bulk create Shopify variant================================================
-    csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vc')
-    staged_target = sa.generate_staged_target(client)
-    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    sa.create_variants(client, staged_target=staged_target)
-    created = False
-    while not created:
-        created = import_status(client)
-
+        # =====================================Bulk create Shopify variant================================================
+        csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vc')
+        staged_target = sa.generate_staged_target(client)
+        sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        sa.create_variants(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = import_status(client)
 
     # =======================================Merge update product with image =========================================
     # merge_images(update_df, image_df)
