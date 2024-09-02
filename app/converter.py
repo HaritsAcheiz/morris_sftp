@@ -1,3 +1,4 @@
+import os
 from itertools import product
 import pandas as pd
 import re
@@ -299,18 +300,21 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             variant['inventoryItem'] = variant_inv_item
             variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
 
-            # variants_inv_qty = list()
-            # variant_inv_qty = dict()
-            # if df.iloc[index]['Variant Inventory Qty'] == '':
-            #     pass
-            # else:
-            #     variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'])
-            #     variant_inv_qty['locationId'] = df.iloc[index]['Variant Barcode']
-            # if len(variant_inv_qty) > 0:
-            #     variants_inv_qty.append(variant_inv_qty)
-            #     variant['inventoryQuantities'] = variants_inv_qty
-            # else:
-            #     pass
+            variants_inv_qty = list()
+            if df.iloc[index]['Variant Inventory Qty'] == '':
+                pass
+            else:
+                variant_inv_qty = {'availableQuantity': 0, 'locationId': ''}
+                try:
+                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'])
+                except ValueError:
+                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
+                variant_inv_qty['locationId'] = os.getenv('SHOPIFY_LOCATION_ID')
+                if len(variant_inv_qty) > 0:
+                    variants_inv_qty.append(variant_inv_qty)
+                    variant['inventoryQuantities'] = variants_inv_qty
+                else:
+                    pass
 
             # variant['mediaId'] = df.iloc[index]['Variant Barcode']
             # variant['mediaSrc'] = df.iloc[index]['Variant Barcode']

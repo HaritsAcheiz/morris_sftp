@@ -95,7 +95,7 @@ def import_button():
 
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/create_products.csv')
-    for create_df in chunked_df:
+    for create_df in chunked_df[0:1]:
 
         # =======================================Merge create product with image =========================================
         image_df = pd.read_csv('data/product_images.csv')
