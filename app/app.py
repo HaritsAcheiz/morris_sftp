@@ -94,8 +94,9 @@ def import_button():
     # upload_and_get_link()
 
     # ====================================Handle limit with chunked data==============================================
-    chunked_df = chunk_data('data/create_products.csv')
-    for create_df in chunked_df[0:1]:
+    chunked_df = chunk_data('data/create_products.csv', nrows=249)
+    print(f'Data length : {len(chunked_df)}')
+    for create_df in chunked_df[4:5]: # not executed yet caused by daily limit
 
         # =======================================Merge create product with image =========================================
         image_df = pd.read_csv('data/product_images.csv')
