@@ -13,7 +13,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
-os.chdir('../')
+# os.chdir('../')
 
 # Filebrowser function
 def browse_file():
@@ -94,7 +94,7 @@ def import_button():
     # upload_and_get_link()
 
     # ====================================Handle limit with chunked data==============================================
-    chunked_df = chunk_data('data/create_products.csv')
+    chunked_df = chunk_data('data/create_products.csv', nrows=100)
     for create_df in chunked_df[0:1]:
 
         # =======================================Merge create product with image =========================================
