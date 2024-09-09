@@ -473,6 +473,31 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             datas.append(data_dict.copy())
 
+    elif mode == 'ap':
+        datas = []
+        for index in df.index:
+            print(df.iloc[index])
+            data_dict = {"input": dict(), "media": list()}
+            data_dict['input']['id'] = df.iloc[index]['id']
+            data_dict['input']['status'] = 'ACTIVE'
+            datas.append(data_dict.copy())
+
+    elif mode == 'pp':
+        datas = []
+        for index in df.index:
+            data_dict = {"id": '', "input": list()}
+            data_dict['id'] = df.iloc[index]['id']
+            publication_ids = ['gid://shopify/Publication/131749707833', 'gid://shopify/Publication/131749773369', 'gid://shopify/Publication/131749838905', 'gid://shopify/Publication/132635131961']
+            publication_inputs = list()
+            publication_input = dict()
+            for publication_id in publication_ids:
+                publication_input['publicationId'] = publication_id
+                # publication_input['publishDate'] = "2024-09-10T23:40:00Z"
+                publication_inputs.append(publication_input.copy())
+            data_dict['input'] = publication_inputs
+
+            datas.append(data_dict.copy())
+
     else:
         print('Mode value is not available')
 

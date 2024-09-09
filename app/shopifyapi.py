@@ -7,7 +7,7 @@ import os
 import pandas as pd
 from dotenv import load_dotenv
 from datetime import datetime, date
-from converter import get_handles
+from converter import csv_to_jsonl, get_handles
 
 load_dotenv()
 
@@ -355,6 +355,36 @@ class ShopifyApp:
             }
         '''
         variables = {'query': "sku:{}".format(skus)}
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
+    def get_products_id_by_query(self, client, variables):
+        print('Getting product id...')
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                products(first: 250, query: $query) {
+                    edges {
+                        node {
+                            handle
+                            id
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
         print(response)
@@ -1057,11 +1087,114 @@ class ShopifyApp:
         return response.json()
 
 
+    def import_status(self, client):
+        # Check Bulk Import status
+        print('Checking')
+        global s
+        response = s.pool_operation_status(client)
+        if response['data']['currentBulkOperation']['status'] == 'COMPLETED':
+            created = True
+        else:
+            sleep(10)
+            created = False
+
+        return created
+
+
+    def publish_unpublish(self, client, staged_target):
+        print('Publishing products...')
+        mutation = '''
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($id: ID!, $input: [PublicationInput!]!) {
+                        publishablePublish(id: $id, input: $input) {
+                            publishable {
+                                availablePublicationsCount {
+                                    count
+                                }
+                                resourcePublicationsCount {
+                                    count
+                                }
+                            }
+                            shop {
+                                publicationCount
+                            }
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
+
+        variables = {
+            "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        print(response)
+        print(response.json())
+        print('')
+
+
 
 if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
+
+    # activate product
+    # has_next_page = True
+    # while has_next_page:
+    #     variables = {'query': "status:{}".format('DRAFT')}
+    #     response = s.get_products_id_by_query(client=client, variables=variables)
+    #     has_next_page = response['data']['products']['pageInfo']['hasNextPage']
+    #     datas = response['data']['products']['edges']
+    #     records = [data['node'] for data in datas]
+    #     df = pd.DataFrame.from_records(records)
+    #     df.to_csv('data/draft_products_id.csv', index=False)
+    #     csv_to_jsonl(csv_filename='data/draft_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='ap')
+    #     staged_target = s.generate_staged_target(client)
+    #     s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    #     s.update_products(client, staged_target=staged_target)
+    #     created = False
+    #     while not created:
+    #         created = s.import_status(client)
+
+
+    # publish unpublish
+    has_next_page = True
+    while has_next_page:
+        variables = {'query': "published_status:{}, status:{}".format('unpublished', 'ACTIVE')}
+        response = s.get_products_id_by_query(client=client, variables=variables)
+        has_next_page = response['data']['products']['pageInfo']['hasNextPage']
+        datas = response['data']['products']['edges']
+        records = [data['node'] for data in datas]
+        df = pd.DataFrame.from_records(records)
+        df.to_csv('data/unpublished_products_id.csv', index=False)
+        csv_to_jsonl(csv_filename='data/unpublished_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
+        staged_target = s.generate_staged_target(client)
+        s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        s.publish_unpublish(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = s.import_status(client)
+
     # s.query_locations(client)
     # path = './Product_By_Category2/*.csv'
     # filenames = glob(path)
@@ -1153,7 +1286,7 @@ if __name__ == '__main__':
     # ============================================get inventories===============================
     # s.query_inventories()
 
-    s.query_product_by_handle(client, handle='game-of-thrones-drogon-prop')
+    # s.query_product_by_handle(client, handle='game-of-thrones-drogon-prop')
 
     # s.pool_operation_status(client)
     # print(s.check_bulk_operation_status(client, bulk_operation_id='gid://shopify/BulkOperation/3252439023930'))
