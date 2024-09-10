@@ -376,6 +376,7 @@ class ShopifyApp:
                         node {
                             handle
                             id
+                            publishedAt
                         }
                     }
                     pageInfo {
@@ -1070,6 +1071,12 @@ class ShopifyApp:
                         query getProductDetailByHandle($handle:String!){
                             productByHandle(handle: $handle) {
                                 id
+                                status
+                                publishedAt
+                                resourcePublicationOnCurrentPublication{
+                                    isPublished
+                                    publishDate
+                                }
                             }
                         }
                         '''
@@ -1152,6 +1159,52 @@ class ShopifyApp:
         print('')
 
 
+    def remove_scheduled_publish_date_updated(self, client, product_id, publication_id=None):
+        print(f'Removing scheduled publish date for product {product_id}...')
+        mutation = '''
+        mutation productPublishOnPublication($id: ID!, $input: ProductPublishInput!) {
+            productPublishOnPublication(id: $id, input: $input) {
+                product {
+                    id
+                    title
+                    publishedAt
+                    resourcePublicationOnCurrentPublication {
+                        publishDate
+                    }
+                }
+                userErrors {
+                    field
+                    message
+                }
+            }
+        }
+        '''
+        variables = {
+            "id": product_id,
+            "input": {
+                "publicationId": publication_id,
+                "publishDate": None
+            }
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        result = response.json()
+        print(json.dumps(result, indent=2))
+
+        if 'errors' in result:
+            print(f"Error: {result['errors']}")
+            return None
+
+        updated_product = result['data']['productPublishOnPublication']['product']
+        if updated_product['resourcePublicationOnCurrentPublication']['publishDate'] is None:
+            print(f"Successfully removed scheduled publish date for product {updated_product['title']}")
+        else:
+            print(f"Failed to remove scheduled publish date for product {updated_product['title']}")
+
+        return updated_product
+
 
 if __name__ == '__main__':
 
@@ -1180,7 +1233,7 @@ if __name__ == '__main__':
     # publish unpublish
     has_next_page = True
     while has_next_page:
-        variables = {'query': "published_status:{}, status:{}".format('unpublished', 'ACTIVE')}
+        variables = {'query': "published_status:{} AND status:{}".format('unpublished', 'ACTIVE')}
         response = s.get_products_id_by_query(client=client, variables=variables)
         has_next_page = response['data']['products']['pageInfo']['hasNextPage']
         datas = response['data']['products']['edges']
@@ -1194,6 +1247,11 @@ if __name__ == '__main__':
         created = False
         while not created:
             created = s.import_status(client)
+
+
+    # s.query_product_by_handle(client, handle='812-8-82')
+
+    # s.remove_scheduled_publish_date_updated(client, 'gid://shopify/Product/7625659777081')
 
     # s.query_locations(client)
     # path = './Product_By_Category2/*.csv'

@@ -131,7 +131,18 @@ def import_button():
         created = False
         while not created:
             created = import_status(client)
+
+        # =============================================Publish Product================================================
+        csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
+        staged_target = sa.generate_staged_target(client)
+        sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        sa.publish_unpublish(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = import_status(client)
+
     print(f'Data length : {len(chunked_df)}')
+
 
     # =======================================Merge update product with image =========================================
     # merge_images(update_df, image_df)

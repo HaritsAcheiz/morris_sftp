@@ -160,7 +160,7 @@ def to_shopify(morris_file_path):
     shopify_df['Included / International'] = ''
     shopify_df['Price / International'] = ''
     shopify_df['Compare At Price / International'] = ''
-    shopify_df['Status'] = 'draft'
+    shopify_df['Status'] = 'active'
     shopify_df.dropna(axis=0, subset='Handle', inplace=True, ignore_index=True)
     shopify_df.fillna('', inplace=True)
 
@@ -492,7 +492,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             publication_input = dict()
             for publication_id in publication_ids:
                 publication_input['publicationId'] = publication_id
-                # publication_input['publishDate'] = "2024-09-10T23:40:00Z"
+                # publication_input['publishDate'] = None
                 publication_inputs.append(publication_input.copy())
             data_dict['input'] = publication_inputs
 
