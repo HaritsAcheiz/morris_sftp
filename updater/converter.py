@@ -482,10 +482,14 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
         datas = []
         for index in df.index:
             data_dict = {"allowPartialUpdates": False, "media": list(), "productId": '', "variants": list()}
-            if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
+            try:
+                df.iloc[index]['Link']
+            except:
                 data_dict.pop("media", None)
-            else:
-                pass
+            # if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
+            #     data_dict.pop("media", None)
+            # else:
+            #     pass
             data_dict['productId'] = df.iloc[index]['id']
             variants = list()
             variant = dict()
@@ -574,4 +578,3 @@ def extract_video_url():
     #     print(df.head())
 
     # extract_video_url()
-    # pass

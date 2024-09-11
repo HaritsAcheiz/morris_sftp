@@ -93,6 +93,7 @@ def import_button():
     # =======================================Upload Image to Dropbox==================================================
     # upload_and_get_link()
 
+# Product Create
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/create_products.csv', nrows=249)
     for create_df in chunked_df[0:4]:
@@ -121,7 +122,7 @@ def import_button():
         product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
         # ========================================Fill create product_id =================================================
-        fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv')
+        fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv', mode='create')
 
         # =====================================Bulk create Shopify variant================================================
         csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vc')
@@ -142,6 +143,33 @@ def import_button():
             created = import_status(client)
 
     print(f'Data length : {len(chunked_df)}')
+
+
+# Product Update
+    # ====================================Handle limit with chunked data==============================================
+    # chunked_df = chunk_data('data/update_products.csv', nrows=249)
+    # for update_df in chunked_df[0:4]:
+    #     # =========================================Get product_id by handle===============================================
+    #     chunked_handles = get_handles('data/create_products.csv')
+    #     product_ids = list()
+    #     for handles in chunked_handles:
+    #         product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+
+    #     extracted_product_ids = [x['node'] for x in product_ids]
+    #     product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    #     product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
+
+    #     # ========================================Fill create product_id =================================================
+    #     fill_product_id('data/update_products.csv', product_id_filepath='data/update_product_ids.csv', mode='update')
+
+    #     # =====================================Bulk create Shopify variant================================================
+    #     csv_to_jsonl(csv_filename='data/update_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vu')
+    #     staged_target = sa.generate_staged_target(client)
+    #     sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    #     sa.create_variants(client, staged_target=staged_target)
+    #     created = False
+    #     while not created:
+    #         created = import_status(client)
 
 
     # =======================================Merge update product with image =========================================
