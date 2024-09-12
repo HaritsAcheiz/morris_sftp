@@ -395,6 +395,38 @@ class ShopifyApp:
         return response.json()
 
 
+    def get_variants_id_by_query(self, client, variables):
+        print('Getting product id...')
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                productVariants(first: 250, query: $query) {
+                    edges {
+                        node {
+                            product {
+                                id
+                            }
+                            id
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
     def query_inventories(self):
         print('Getting inventories...', end='')
         query = '''
@@ -1231,22 +1263,22 @@ if __name__ == '__main__':
 
 
     # publish unpublish
-    has_next_page = True
-    while has_next_page:
-        variables = {'query': "published_status:{} AND status:{}".format('unpublished', 'ACTIVE')}
-        response = s.get_products_id_by_query(client=client, variables=variables)
-        has_next_page = response['data']['products']['pageInfo']['hasNextPage']
-        datas = response['data']['products']['edges']
-        records = [data['node'] for data in datas]
-        df = pd.DataFrame.from_records(records)
-        df.to_csv('data/unpublished_products_id.csv', index=False)
-        csv_to_jsonl(csv_filename='data/unpublished_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
-        staged_target = s.generate_staged_target(client)
-        s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-        s.publish_unpublish(client, staged_target=staged_target)
-        created = False
-        while not created:
-            created = s.import_status(client)
+    # has_next_page = True
+    # while has_next_page:
+    #     variables = {'query': "published_status:{} AND status:{}".format('unpublished', 'ACTIVE')}
+    #     response = s.get_products_id_by_query(client=client, variables=variables)
+    #     has_next_page = response['data']['products']['pageInfo']['hasNextPage']
+    #     datas = response['data']['products']['edges']
+    #     records = [data['node'] for data in datas]
+    #     df = pd.DataFrame.from_records(records)
+    #     df.to_csv('data/unpublished_products_id.csv', index=False)
+    #     csv_to_jsonl(csv_filename='data/unpublished_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
+    #     staged_target = s.generate_staged_target(client)
+    #     s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    #     s.publish_unpublish(client, staged_target=staged_target)
+    #     created = False
+    #     while not created:
+    #         created = s.import_status(client)
 
 
     # s.query_product_by_handle(client, handle='812-8-82')
@@ -1351,3 +1383,9 @@ if __name__ == '__main__':
     # handles = ['rest-in-peace-cross-tombstone-1', 'trick-or-treat-yo-self-makeup-bag', '38-exit-ez-fx-kit-1']
     # f_handles = ','.join(handles)
     # s.get_products_id_by_handle(client, handles=f_handles)
+
+    # get variant id
+    product_ids = ['"gid://shopify/Product/7628276564025"', '"gid://shopify/Product/7625947349049"']
+    f_prod_id = ','.join(product_ids)
+    variables = {'query': "product_ids:{}".format(f_prod_id)}
+    s.get_variants_id_by_query(client=client, variables=variables)
