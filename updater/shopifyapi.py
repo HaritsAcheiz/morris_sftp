@@ -994,6 +994,7 @@ class ShopifyApp:
 
         return result['data']['productVariants']['edges'][0]['node']['id']
 
+
     def update_variants(self, client, sku, barcode):
         print("Update variant price...")
         mutation = '''
@@ -1029,6 +1030,52 @@ class ShopifyApp:
                 break
             except Exception as e:
                 print(e)
+
+
+    def bulk_update_variants(self, client, staged_target):
+        print('Creating products...')
+        mutation = '''
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($allowPartialUpdates: Boolean, $productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+                        productVariantsBulkUpdate(allowPartialUpdates: $allowPartialUpdates, productId: $productId, variants: $variants) {
+                            productVariants{
+                                id
+                                inventoryQuantity
+                                price
+                            }
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
+
+        variables = {
+            "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        print(response)
+        print(response.json())
+        print('')
+
 
     def create_collection(self, client, descriptionHtml, image_src, title, appliedDisjuntively, column, relation, condition):
         # product_id = pd.read_csv(f'Product_By_Category2/ {title}.csv', usecols='product_id')['product_id'].tolist()
@@ -1385,7 +1432,7 @@ if __name__ == '__main__':
     # s.get_products_id_by_handle(client, handles=f_handles)
 
     # get variant id
-    product_ids = ['"gid://shopify/Product/7628276564025"', '"gid://shopify/Product/7625947349049"']
+    product_ids = ['7628276564025', '7625947349049']
     f_prod_id = ','.join(product_ids)
     variables = {'query': "product_ids:{}".format(f_prod_id)}
     s.get_variants_id_by_query(client=client, variables=variables)

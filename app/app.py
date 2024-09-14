@@ -96,7 +96,7 @@ def import_button():
 # Product Create
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/create_products.csv', nrows=249)
-    for create_df in chunked_df[0:4]:
+    for create_df in chunked_df[0:3]:
 
         # =======================================Merge create product with image =========================================
         image_df = pd.read_csv('data/product_images.csv')
@@ -111,18 +111,18 @@ def import_button():
         while not created:
             created = import_status(client)
 
-        # =========================================Get product_id by handle===============================================
-        chunked_handles = get_handles('data/create_products.csv')
-        product_ids = list()
-        for handles in chunked_handles:
-            product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+        time.sleep(300)
 
+        # =========================================Get product_id by handle===============================================
+        handles = create_df['Handle'].to_list()
+        product_ids = list()
+        product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
         extracted_product_ids = [x['node'] for x in product_ids]
         product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
         product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
         # ========================================Fill create product_id =================================================
-        fill_product_id('data/create_products.csv', product_id_filepath='data/create_product_ids.csv', mode='create')
+        fill_product_id(create_df, product_id_filepath='data/create_product_ids.csv', mode='create')
 
         # =====================================Bulk create Shopify variant================================================
         csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vc')
@@ -132,6 +132,8 @@ def import_button():
         created = False
         while not created:
             created = import_status(client)
+
+        time.sleep(300)
 
         # =============================================Publish Product================================================
         csv_to_jsonl(csv_filename='data/create_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')

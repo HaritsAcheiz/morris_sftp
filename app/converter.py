@@ -246,9 +246,9 @@ def group_create_update():
     create_df.to_csv('data/create_products.csv')
     update_df.to_csv('data/update_products.csv')
 
-def fill_product_id(product_filepath, product_id_filepath, mode):
+def fill_product_id(product_df, product_id_filepath, mode):
     # Fill product id
-    shopify_df = pd.read_csv(product_filepath)
+    shopify_df = product_df
     product_ids_df = pd.read_csv(product_id_filepath)
     shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)

@@ -210,8 +210,8 @@ def get_skus():
     return list(shopify_df['Variant SKU'])
 
 
-def get_handles(filepath, nrows=250):
-    shopify_df = pd.read_csv(filepath)
+def get_handles(product_df, nrows=250):
+    shopify_df = product_df
     try:
         handles = list(shopify_df['Handle'])
     except:
@@ -219,6 +219,13 @@ def get_handles(filepath, nrows=250):
     chunked_handles = [handles[i:i + nrows] for i in range(0, len(handles), nrows)]
 
     return chunked_handles
+
+def get_ids(filepath, nrows=250):
+    shopify_df = pd.read_csv(filepath)
+    ids = list(shopify_df['id'])
+    chunked_ids = [ids[i:i + nrows] for i in range(0, len(ids), nrows)]
+
+    return chunked_ids
 
 
 def chunk_data(filepath, usecols=None, nrows=250):
@@ -246,9 +253,8 @@ def group_create_update():
     create_df.to_csv('data/create_products.csv')
     update_df.to_csv('data/update_products.csv')
 
-def fill_product_id(product_filepath, product_id_filepath, mode):
+def fill_product_id(shopify_df, product_id_filepath, mode):
     # Fill product id
-    shopify_df = pd.read_csv(product_filepath)
     product_ids_df = pd.read_csv(product_id_filepath)
     shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
@@ -260,6 +266,20 @@ def fill_product_id(product_filepath, product_id_filepath, mode):
         shopify_df.to_csv('data/update_products_with_id.csv', index=False)
     else:
         print('Mode is undefined')
+
+
+def fill_variant_id(shopify_df, product_id_filepath, mode):
+        # Fill variant id
+        variant_ids_df = pd.read_csv(product_id_filepath)
+        shopify_df = pd.merge(shopify_df, variant_ids_df, how='left', left_on='id', right_on='product_id')
+        shopify_df.fillna('', inplace=True)
+        shopify_df.drop(columns=['Unnamed: 0', 'handle', 'product_id'], inplace=True)
+        if mode == 'create':
+            shopify_df.to_csv('data/create_product_variants_with_vids.csv', index=False)
+        elif mode == 'update':
+            shopify_df.to_csv('data/update_product_variants_with_vids.csv', index=False)
+        else:
+            print('Mode is undefined')
 
 
 def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
@@ -478,42 +498,25 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             datas.append(data_dict.copy())
 
-    elif mode == 'vu':
+    elif mode == 'vup':
         datas = []
         for index in df.index:
-            data_dict = {"allowPartialUpdates": False, "media": list(), "productId": '', "variants": list()}
-            try:
-                df.iloc[index]['Link']
-            except:
-                data_dict.pop("media", None)
-            # if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
-            #     data_dict.pop("media", None)
-            # else:
-            #     pass
+            data_dict = {"allowPartialUpdates": False, "productId": '', "variants": list()}
             data_dict['productId'] = df.iloc[index]['id']
+
             variants = list()
             variant = dict()
-            variant['id'] = df.iloc[index]['var_id']
+            variant['id'] = df.iloc[index]['variant_id']
 
             var_inv_item = dict()
             var_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
             variant['inventoryItem'] = var_inv_item
 
-            variants_inv_qty = list()
-            if df.iloc[index]['Variant Inventory Qty'] == '':
-                variant_inv_qty = {'availableQuantity': 0, 'locationId': os.getenv('SHOPIFY_LOCATION_ID')}
-            else:
-                variant_inv_qty = {'availableQuantity': 0, 'locationId': os.getenv('SHOPIFY_LOCATION_ID')}
-                try:
-                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'])
-                except ValueError:
-                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
-                variant_inv_qty['locationId'] = os.getenv('SHOPIFY_LOCATION_ID')
-
-            variants_inv_qty.append(variant_inv_qty)
-            variant['inventoryQuantities'] = variants_inv_qty
-
             variant['price'] = df.iloc[index]['Variant Price']
+            variants.append(variant)
+            data_dict['variants'] = variants
+            datas.append(data_dict.copy())
+
 
     elif mode == 'ap':
         datas = []
