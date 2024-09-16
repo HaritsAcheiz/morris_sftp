@@ -8,8 +8,6 @@ from urllib.parse import quote, unquote
 from ast import literal_eval
 from html import unescape
 
-from updater.converter import deduplicate_handles
-
 weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OUNCES'}
 tracker_mapper = {'shopify': True, '': False}
 
@@ -123,7 +121,7 @@ def to_shopify(morris_file_path):
     shopify_df['Variant Inventory Policy'] = 'deny'
     shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
     # shopify_df['Variant Price'] = morris_df['MapPrice']
-    shopify_df['Variant Price'] = morris_df['Price']
+    shopify_df['Variant Price'] = morris_df['MapPrice']
     shopify_df['Variant Compare At Price'] = ''
     shopify_df['Variant Requires Shipping'] = True
     shopify_df['Variant Taxable'] = True
@@ -166,6 +164,7 @@ def to_shopify(morris_file_path):
     shopify_df['Status'] = 'active'
     shopify_df.dropna(axis=0, subset='Handle', inplace=True, ignore_index=True)
     shopify_df.fillna('', inplace=True)
+    shopify_df = deduplicate_handles(shopify_df)
 
     shopify_df.to_csv('data/temp.csv', index=False)
 
@@ -215,7 +214,7 @@ def get_skus():
 def get_handles(filepath, nrows=250):
     shopify_df = pd.read_csv(filepath)
     try:
-        handles = list(shopify_df['Handle'])
+        handles = list(shopify_df['Unique Handle'])
     except:
         handles = list(shopify_df['handle'])
     chunked_handles = [handles[i:i + nrows] for i in range(0, len(handles), nrows)]
@@ -229,7 +228,6 @@ def chunk_data(filepath, usecols=None, nrows=250):
         df = pd.read_csv(filepath, usecols=usecols)
     else:
         df = pd.read_csv(filepath)
-    df = deduplicate_handles(df)
     for start in range(0, len(df), nrows):
         chunked_df.append(df[start:start + nrows])
 
@@ -240,7 +238,7 @@ def group_create_update():
     # Fill product id
     shopify_df = pd.read_csv('data/temp.csv')
     product_ids_df = pd.read_csv('data/product_ids.csv')
-    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
+    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Unique Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
 
     # group update create
@@ -253,7 +251,7 @@ def fill_product_id(product_df, product_id_filepath, mode):
     # Fill product id
     shopify_df = product_df
     product_ids_df = pd.read_csv(product_id_filepath)
-    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
+    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Unique Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
     shopify_df.drop(columns=['handle_x', 'id_x', 'handle_y'], inplace=True)
     shopify_df.rename({'id_y': 'id'}, axis=1, inplace=True)
@@ -370,7 +368,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['input']['descriptionHtml'] = df.iloc[index]['Body (HTML)']
             data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
             # data_dict['input']['giftCardTemplateSuffix'] = ''
-            data_dict['input']['handle'] = df.iloc[index]['Handle']
+            data_dict['input']['handle'] = df.iloc[index]['Unique Handle']
             # data_dict['input']['id'] = ''
             data_dict['input']['metafields'] = {#'id': '',
                                                 'key': 'enable_best_price',
@@ -398,8 +396,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             media_list = []
             media = dict()
-            print(df.iloc[index]['Link'])
-            print(df.iloc[index]['Image Alt Text'])
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
@@ -432,19 +428,16 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['input']['descriptionHtml'] = df.iloc[index]['Body (HTML)']
             data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
             # data_dict['input']['giftCardTemplateSuffix'] = ''
-            data_dict['input']['handle'] = df.iloc[index]['Handle']
-            # data_dict['input']['id'] = ''
-            data_dict['input']['metafields'] = {#'id': '',
-                                                'key': 'enable_best_price',
-                                                'namespace': 'custom',
-                                                'type': 'boolean',
+            # data_dict['input']['handle'] = df.iloc[index]['Unique Handle']
+            data_dict['input']['id'] = df.iloc[index]['id'].split('/')[-1]
+            data_dict['input']['metafields'] = {'id': 'gid://shopify/MetafieldDefinition/46708195385',
                                                 'value': str_to_bool(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
                                                 }
-            product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+            # product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
 
-            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
-                product_options = [x for x in product_options if x is not None]
-                data_dict['input']['productOptions'] = product_options
+            # if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+            #     product_options = [x for x in product_options if x is not None]
+            #     data_dict['input']['productOptions'] = product_options
 
             # data_dict['input']['productType'] = df.iloc[index]['Type']
             data_dict['input']['redirectNewHandle'] = str_to_bool('True')
@@ -460,8 +453,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             media_list = []
             media = dict()
-            print(df.iloc[index]['Link'])
-            print(df.iloc[index]['Image Alt Text'])
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
@@ -551,19 +542,45 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 jsonlfile.write('\n')
 
 
-def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
+def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame, mode='create'):
     print('Merging images...')
     grouped_image_df = image_df.groupby('Handle')['Link'].agg(list).reset_index()
     print(grouped_image_df)
     result_df = product_df.merge(grouped_image_df, how='left', left_on='Handle', right_on='Handle')
-    result_df.to_csv('data/create_products_with_images.csv', index=False)
-
+    if mode == 'create':
+        result_df.to_csv('data/create_products_with_images.csv', index=False)
+    elif mode == 'update':
+        result_df.to_csv('data/update_products_with_images.csv', index=False)
+    else:
+        print('Mode is undefined')
 
 def extract_video_url():
     df = pd.read_excel('data/All_Products_PWHSL.xlsx', usecols=['ProductName', 'FormattedName', 'FullDescription'])
     df['Handle'] = df.apply(lambda x: to_handle(x['ProductName'], alt_title=x['FormattedName']), axis=1)
     sel_df = df[df['FullDescription'].str.contains('https://', na=False)]
     sel_df.to_csv('video_data.csv', index=False)
+
+def deduplicate_handles(df):
+    # Create a copy of the dataframe to avoid modifying the original
+    df = df.copy()
+
+    # Group by handle and create a cumulative count
+    df['handle_count'] = df.groupby('Handle').cumcount()
+
+    # Define a function to modify handles
+    def modify_handle(row):
+        if row['handle_count'] == 0:
+            return row['Handle']
+        else:
+            return f"{row['Handle']}-{row['handle_count']}"
+
+    # Apply the function to create new handles
+    df['Unique Handle'] = df.apply(modify_handle, axis=1)
+
+    # Drop the temporary column
+    df = df.drop('handle_count', axis=1)
+
+    return df
 
 # if __name__ == '__main__':
     # to_shopify('data/All_Products_PWHSL.xlsx')

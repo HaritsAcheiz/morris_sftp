@@ -121,7 +121,7 @@ def to_shopify(morris_file_path):
     shopify_df['Variant Inventory Policy'] = 'deny'
     shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
     # shopify_df['Variant Price'] = morris_df['MapPrice']
-    shopify_df['Variant Price'] = morris_df['Price']
+    shopify_df['Variant Price'] = morris_df['MapPrice']
     shopify_df['Variant Compare At Price'] = ''
     shopify_df['Variant Requires Shipping'] = True
     shopify_df['Variant Taxable'] = True
@@ -164,6 +164,7 @@ def to_shopify(morris_file_path):
     shopify_df['Status'] = 'active'
     shopify_df.dropna(axis=0, subset='Handle', inplace=True, ignore_index=True)
     shopify_df.fillna('', inplace=True)
+    shopify_df = deduplicate_handles(shopify_df)
 
     shopify_df.to_csv('data/temp.csv', index=False)
 
@@ -213,7 +214,7 @@ def get_skus():
 def get_handles(product_df, nrows=250):
     shopify_df = product_df
     try:
-        handles = list(shopify_df['Handle'])
+        handles = list(shopify_df['Unique Handle'])
     except:
         handles = list(shopify_df['handle'])
     chunked_handles = [handles[i:i + nrows] for i in range(0, len(handles), nrows)]
@@ -234,7 +235,6 @@ def chunk_data(filepath, usecols=None, nrows=250):
         df = pd.read_csv(filepath, usecols=usecols)
     else:
         df = pd.read_csv(filepath)
-    df = deduplicate_handles(df)
     for start in range(0, len(df), nrows):
         chunked_df.append(df[start:start + nrows])
 
@@ -245,7 +245,7 @@ def group_create_update():
     # Fill product id
     shopify_df = pd.read_csv('data/temp.csv')
     product_ids_df = pd.read_csv('data/product_ids.csv')
-    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
+    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Unique Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
 
     # group update create
@@ -257,7 +257,7 @@ def group_create_update():
 def fill_product_id(shopify_df, product_id_filepath, mode):
     # Fill product id
     product_ids_df = pd.read_csv(product_id_filepath)
-    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Handle', right_on='handle')
+    shopify_df = pd.merge(shopify_df, product_ids_df, how='left', left_on='Unique Handle', right_on='handle')
     shopify_df.fillna('', inplace=True)
     shopify_df.drop(columns=['handle_x', 'id_x', 'handle_y'], inplace=True)
     shopify_df.rename({'id_y': 'id'}, axis=1, inplace=True)
@@ -508,12 +508,41 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             variants = list()
             variant = dict()
             variant['id'] = df.iloc[index]['variant_id']
+            variant['barcode'] = str(df.iloc[index]['Variant Barcode'])
+            if df.iloc[index]['Variant Compare At Price'] == '':
+                pass
+            else:
+                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']), 2)
+
+            variant_measure = {'weight': {'unit': 'GRAMS', 'value': 0.0}}
+            try:
+                variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
+                variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
+            except:
+                pass
+
+            variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
 
             var_inv_item = dict()
             var_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
+            var_inv_item['tracked'] = True
+            var_inv_item['measurement'] = variant_measure
+            var_inv_item['requiresShipping'] = str_to_bool('true')
+            var_inv_item['sku'] = df.iloc[index]['Variant SKU']
+            var_inv_item['tracked'] = tracker_mapper[df.iloc[index]['Variant Inventory Tracker']]
             variant['inventoryItem'] = var_inv_item
 
-            variant['price'] = df.iloc[index]['Variant Price']
+            product_options = [fill_opt_var(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+                product_options = [x for x in product_options if x is not None]
+                variant['optionValues'] = product_options
+
+            try:
+                variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+            except:
+                variant['price'] = 0.00
+
+            variant['taxable'] = str_to_bool('true')
             variants.append(variant)
             data_dict['variants'] = variants
             datas.append(data_dict.copy())
@@ -562,7 +591,7 @@ def csv_to_quantities(csv_filename):
     df.fillna('', inplace=True)
     quantities = list()
     for index in df.index:
-        if df.iloc[index]['Variant Inventory Qty'] == '':
+        if (df.iloc[index]['Variant Inventory Qty'] == '') | (df.iloc[index]['Variant Price'] == 0):
             qty = {
                 "inventoryItemId": df.iloc[index]['inventory_id'],
                 "locationId": "gid://shopify/Location/73063170105",
@@ -612,7 +641,7 @@ def deduplicate_handles(df):
             return f"{row['Handle']}-{row['handle_count']}"
 
     # Apply the function to create new handles
-    df['Handle'] = df.apply(modify_handle, axis=1)
+    df['Unique Handle'] = df.apply(modify_handle, axis=1)
 
     # Drop the temporary column
     df = df.drop('handle_count', axis=1)

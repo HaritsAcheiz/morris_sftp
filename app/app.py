@@ -96,7 +96,7 @@ def import_button():
 # Product Create
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/create_products.csv', nrows=249)
-    for create_df in chunked_df[0:4]:
+    for create_df in chunked_df[0:1]:
 
         # =======================================Merge create product with image =========================================
         image_df = pd.read_csv('data/product_images.csv')
@@ -114,7 +114,7 @@ def import_button():
         time.sleep(300)
 
         # =========================================Get product_id by handle===============================================
-        handles = create_df['Handle'].to_list()
+        handles = create_df['Unique Handle'].to_list()
         product_ids = list()
         product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
         extracted_product_ids = [x['node'] for x in product_ids]
@@ -147,47 +147,72 @@ def import_button():
     print(f'Data length : {len(chunked_df)}')
 
 
+def update_button():
+    # Create Shopify API Session
+    global sa
+    global staged_target
+
+    sa = ShopifyApp(store_name=store_name_entry.get(), access_token=access_token_entry.get())
+    client = sa.create_session()
+
+    # =====================================Convert morris file into shopify file======================================
+    to_shopify(morris_file_path=import_file_entry.get())
+
+    # =========================================Get product_id by handle===============================================
+    chunked_handles = get_handles('data/temp.csv')
+    product_ids = list()
+    for handles in chunked_handles:
+        product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+
+    extracted_product_ids = [x['node'] for x in product_ids]
+    product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+    product_id_handle_df.to_csv('data/product_ids.csv', index=False)
+
+    # =======================================Create and Update grouping===============================================
+    group_create_update()
+
 # Product Update
     # ====================================Handle limit with chunked data==============================================
-    # chunked_df = chunk_data('data/update_products.csv', nrows=249)
-    # for update_df in chunked_df[0:4]:
-    #     # =========================================Get product_id by handle===============================================
-    #     chunked_handles = get_handles('data/create_products.csv')
-    #     product_ids = list()
-    #     for handles in chunked_handles:
-    #         product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
+    chunked_df = chunk_data('data/update_products.csv', nrows=249)
+    for update_df in chunked_df[0:1]:
 
-    #     extracted_product_ids = [x['node'] for x in product_ids]
-    #     product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-    #     product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
+        # =========================================Get product_id by handle===============================================
+        handles = update_df['Unique Handle'].to_list()
+        product_ids = list()
+        product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
+        extracted_product_ids = [x['node'] for x in product_ids]
+        product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+        product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
 
-    #     # ========================================Fill create product_id =================================================
-    #     fill_product_id('data/update_products.csv', product_id_filepath='data/update_product_ids.csv', mode='update')
+        # =======================================Merge create product with image =========================================
+        image_df = pd.read_csv('data/product_images.csv')
+        merge_images(update_df, image_df, mode='update')
 
-    #     # =====================================Bulk create Shopify variant================================================
-    #     csv_to_jsonl(csv_filename='data/update_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vu')
-    #     staged_target = sa.generate_staged_target(client)
-    #     sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    #     sa.create_variants(client, staged_target=staged_target)
-    #     created = False
-    #     while not created:
-    #         created = import_status(client)
+        # ========================================Fill create product_id =================================================
+        update_df_with_img = pd.read_csv('data/update_products_with_images.csv')
+        fill_product_id(update_df_with_img, product_id_filepath='data/update_product_ids.csv', mode='update')
 
+        # =====================================Bulk update Shopify product================================================
+        csv_to_jsonl(csv_filename='data/update_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pu')
+        staged_target = sa.generate_staged_target(client)
+        sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        sa.update_products(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = import_status(client)
 
-    # =======================================Merge update product with image =========================================
-    # merge_images(update_df, image_df)
+        time.sleep(300)
 
-    # =====================================Bulk update Shopify product================================================
-    # csv_to_jsonl(csv_filename='data/update_products.csv', jsonl_filename='bulk_op_vars.jsonl')
-    # staged_target = sa.generate_staged_target(client)
-    # sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-    # sa.update_products(client, staged_target=staged_target)
-    # updated = False
-    # while not updated:
-    #     updated = import_status(client)
+        # =====================================Bulk create Shopify variant================================================
+        csv_to_jsonl(csv_filename='data/update_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vu')
+        staged_target = sa.generate_staged_target(client)
+        sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+        sa.update_variants(client, staged_target=staged_target)
+        created = False
+        while not created:
+            created = import_status(client)
 
-    # Add price
-
+    print(f'Data length : {len(chunked_df)}')
 
 
 def close_button():
@@ -234,21 +259,18 @@ import_file_button.grid(column=4, row=1, sticky='E')
 
 # Logger Text
 
-
-
-# Close Button
-check_img = PhotoImage(file='asset/magnifier-svgrepo-com.png')
-check_button_img = check_img.subsample(10, 10)
-close_button = Button(window,
-                   text='Close',
-                   image=check_button_img,
+# Update Button
+rocket_img = PhotoImage(file='asset/rocket-svgrepo-com.png')
+update_button_img = rocket_img.subsample(10, 10)
+update_button = Button(window,
+                   text='Update',
+                   image=update_button_img,
                    compound='left',
                    bg='light grey',
                    width=70,
                    height=20,
-                   command=close_button)
-close_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
-
+                   command=update_button)
+update_button.grid(column=2, row=4, sticky='SE', pady=(135, 15))
 
 # Import Button
 rocket_img = PhotoImage(file='asset/rocket-svgrepo-com.png')
@@ -261,7 +283,22 @@ import_button = Button(window,
                    width=70,
                    height=20,
                    command=import_button)
-import_button.grid(column=4, row=4, sticky='SE', pady=(135, 15))
+import_button.grid(column=3, row=4, sticky='SE', pady=(135, 15))
+
+# Close Button
+check_img = PhotoImage(file='asset/magnifier-svgrepo-com.png')
+check_button_img = check_img.subsample(10, 10)
+close_button = Button(window,
+                   text='Close',
+                   image=check_button_img,
+                   compound='left',
+                   bg='light grey',
+                   width=70,
+                   height=20,
+                   command=close_button)
+close_button.grid(column=4, row=4, sticky='SE', pady=(135, 15))
+
+
 
 
 window.mainloop()

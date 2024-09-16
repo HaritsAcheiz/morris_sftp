@@ -35,7 +35,6 @@ def main():
 
     # =========================================Get product_id by handle===============================================
     temp_df = pd.read_csv('data/temp.csv')
-    temp_df = deduplicate_handles(temp_df)
     chunked_handles = get_handles(temp_df)
     product_ids = list()
     for handles in chunked_handles:
@@ -54,7 +53,7 @@ def main():
     for update_df in chunked_df:
 
         # =========================================Get product_id by handle===============================================
-        handles = update_df['Handle'].to_list()
+        handles = update_df['Unique Handle'].to_list()
         product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
         extracted_product_ids = [x['node'] for x in product_ids]
         product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)

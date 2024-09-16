@@ -1015,41 +1015,6 @@ class ShopifyApp:
 
         return result['data']['productVariants']['edges'][0]['node']['id']
 
-    def update_variants(self, client, sku, barcode):
-        print("Update variant price...")
-        mutation = '''
-                    mutation productVariantUpdate($input: ProductVariantInput!)
-                    {
-                        productVariantUpdate(input: $input) {
-                            productVariant {
-                                sku
-                            }
-                            userErrors {
-                                field
-                                message
-                            }
-                        }
-                    }
-                    '''
-
-        variables = {
-            'input': {
-                'id': self.get_variants(client=client, sku=sku),
-                'sku': sku,
-                'barcode': str(barcode)
-            }
-        }
-
-        while 1:
-            try:
-                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                                       json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
-                break
-            except Exception as e:
-                print(e)
 
     def create_collection(self, client, descriptionHtml, image_src, title, appliedDisjuntively, column, relation, condition):
         # product_id = pd.read_csv(f'Product_By_Category2/ {title}.csv', usecols='product_id')['product_id'].tolist()
@@ -1259,10 +1224,35 @@ class ShopifyApp:
         return updated_product
 
 
+    def get_metafields(self, client):
+        query = '''
+            query {
+                metafieldDefinitions(first: 250, ownerType: PRODUCT) {
+                    edges {
+                        node {
+                            id
+                            name
+                        }
+                    }
+                }
+            }
+        '''
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
+                                   json={'query': query})
+
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
 if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
+
+    # s.get_metafields(client)
 
     # activate product
     # has_next_page = True
@@ -1284,22 +1274,22 @@ if __name__ == '__main__':
 
 
     # publish unpublish
-    has_next_page = True
-    while has_next_page:
-        variables = {'query': "published_status:{} AND status:{}".format('unpublished', 'ACTIVE')}
-        response = s.get_products_id_by_query(client=client, variables=variables)
-        has_next_page = response['data']['products']['pageInfo']['hasNextPage']
-        datas = response['data']['products']['edges']
-        records = [data['node'] for data in datas]
-        df = pd.DataFrame.from_records(records)
-        df.to_csv('data/unpublished_products_id.csv', index=False)
-        csv_to_jsonl(csv_filename='data/unpublished_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
-        staged_target = s.generate_staged_target(client)
-        s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
-        s.publish_unpublish(client, staged_target=staged_target)
-        created = False
-        while not created:
-            created = s.import_status(client)
+    # has_next_page = True
+    # while has_next_page:
+    #     variables = {'query': "published_status:{} AND status:{}".format('unpublished', 'ACTIVE')}
+    #     response = s.get_products_id_by_query(client=client, variables=variables)
+    #     has_next_page = response['data']['products']['pageInfo']['hasNextPage']
+    #     datas = response['data']['products']['edges']
+    #     records = [data['node'] for data in datas]
+    #     df = pd.DataFrame.from_records(records)
+    #     df.to_csv('data/unpublished_products_id.csv', index=False)
+    #     csv_to_jsonl(csv_filename='data/unpublished_products_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='pp')
+    #     staged_target = s.generate_staged_target(client)
+    #     s.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    #     s.publish_unpublish(client, staged_target=staged_target)
+    #     created = False
+    #     while not created:
+    #         created = s.import_status(client)
 
 
     # s.query_product_by_handle(client, handle='812-8-82')
