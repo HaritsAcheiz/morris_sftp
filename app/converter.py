@@ -8,6 +8,8 @@ from urllib.parse import quote, unquote
 from ast import literal_eval
 from html import unescape
 
+from updater.converter import deduplicate_handles
+
 weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OUNCES'}
 tracker_mapper = {'shopify': True, '': False}
 
@@ -227,6 +229,7 @@ def chunk_data(filepath, usecols=None, nrows=250):
         df = pd.read_csv(filepath, usecols=usecols)
     else:
         df = pd.read_csv(filepath)
+    df = deduplicate_handles(df)
     for start in range(0, len(df), nrows):
         chunked_df.append(df[start:start + nrows])
 
@@ -546,6 +549,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             for item in datas:
                 json.dump(item, jsonlfile, default=str)
                 jsonlfile.write('\n')
+
 
 def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
     print('Merging images...')

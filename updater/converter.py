@@ -234,6 +234,7 @@ def chunk_data(filepath, usecols=None, nrows=250):
         df = pd.read_csv(filepath, usecols=usecols)
     else:
         df = pd.read_csv(filepath)
+    df = deduplicate_handles(df)
     for start in range(0, len(df), nrows):
         chunked_df.append(df[start:start + nrows])
 
@@ -275,9 +276,9 @@ def fill_variant_id(shopify_df, product_id_filepath, mode):
         shopify_df.fillna('', inplace=True)
         shopify_df.drop(columns=['Unnamed: 0', 'handle', 'product_id'], inplace=True)
         if mode == 'create':
-            shopify_df.to_csv('data/create_product_variants_with_vids.csv', index=False)
+            shopify_df.to_csv('data/create_product_variants_with_vids_invids.csv', index=False)
         elif mode == 'update':
-            shopify_df.to_csv('data/update_product_variants_with_vids.csv', index=False)
+            shopify_df.to_csv('data/update_product_variants_with_vids_invids.csv', index=False)
         else:
             print('Mode is undefined')
 
@@ -554,6 +555,34 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 json.dump(item, jsonlfile, default=str)
                 jsonlfile.write('\n')
 
+
+def csv_to_quantities(csv_filename):
+    print("Converting csv to quantities...")
+    df = pd.read_csv(csv_filename)
+    df.fillna('', inplace=True)
+    quantities = list()
+    for index in df.index:
+        if df.iloc[index]['Variant Inventory Qty'] == '':
+            qty = {
+                "inventoryItemId": df.iloc[index]['inventory_id'],
+                "locationId": "gid://shopify/Location/73063170105",
+                "quantity": 0
+            }
+        else:
+            try:
+                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
+            except ValueError:
+                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
+            qty = {
+                "inventoryItemId": df.iloc[index]['inventory_id'],
+                "locationId": "gid://shopify/Location/73063170105",
+                "quantity": variant_inv_qty
+            }
+        quantities.append(qty.copy())
+
+    return quantities
+
+
 def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):
     print('Merging images...')
     grouped_image_df = image_df.groupby('Handle')['Link'].agg(list).reset_index()
@@ -567,6 +596,28 @@ def extract_video_url():
     df['Handle'] = df.apply(lambda x: to_handle(x['ProductName'], alt_title=x['FormattedName']), axis=1)
     sel_df = df[df['FullDescription'].str.contains('https://', na=False)]
     sel_df.to_csv('video_data.csv', index=False)
+
+def deduplicate_handles(df):
+    # Create a copy of the dataframe to avoid modifying the original
+    df = df.copy()
+
+    # Group by handle and create a cumulative count
+    df['handle_count'] = df.groupby('Handle').cumcount()
+
+    # Define a function to modify handles
+    def modify_handle(row):
+        if row['handle_count'] == 0:
+            return row['Handle']
+        else:
+            return f"{row['Handle']}-{row['handle_count']}"
+
+    # Apply the function to create new handles
+    df['Handle'] = df.apply(modify_handle, axis=1)
+
+    # Drop the temporary column
+    df = df.drop('handle_count', axis=1)
+
+    return df
 
 # if __name__ == '__main__':
     # to_shopify('data/All_Products_PWHSL.xlsx')

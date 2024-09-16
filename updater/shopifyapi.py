@@ -335,6 +335,7 @@ class ShopifyApp:
 
     def get_products_id_by_sku(self, client, skus):
         print('Getting product id...')
+        f_skus = ','.join(skus)
         query = '''
             query(
                 $query: String
@@ -354,7 +355,7 @@ class ShopifyApp:
                 }
             }
         '''
-        variables = {'query': "sku:{}".format(skus)}
+        variables = {'query': "sku:{}".format(f_skus)}
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
         print(response)
@@ -409,6 +410,9 @@ class ShopifyApp:
                                 id
                             }
                             id
+                            inventoryItem{
+                                id
+                            }
                         }
                     }
                     pageInfo {
@@ -536,6 +540,40 @@ class ShopifyApp:
         print(response)
         print(response.json())
         print('')
+
+
+    def update_inventories(self, client, quantities):
+        mutation = '''
+        mutation inventorySetQuantities($input: InventorySetQuantitiesInput!) {
+                             inventorySetQuantities(input: $input)
+                             {
+                                userErrors {
+                                            field
+                                            message
+                                }
+                             }
+        }
+        '''
+
+        variables = {
+            "input": {
+                "ignoreCompareQuantity": True,
+                "name": "available",
+                "quantities": quantities,
+                "reason": "correction"
+            }
+        }
+
+        while 1:
+            try:
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                                       json={'query': mutation, 'variables': variables})
+                print(response)
+                print(response.json())
+                print('')
+                break
+            except Exception as e:
+                print(e)
 
 
     # Bulk operation support
@@ -1077,6 +1115,51 @@ class ShopifyApp:
         print('')
 
 
+    def bulk_update_variants_qty(self, client, staged_target):
+        print('Creating products...')
+        mutation = '''
+            mutation ($stagedUploadPath: String!){
+                bulkOperationRunMutation(
+                    mutation: "mutation call($allowPartialUpdates: Boolean, $productId: ID!, $variants: [ProductVariantsBulkInput!]!) {
+                        productVariantsBulkUpdate(allowPartialUpdates: $allowPartialUpdates, productId: $productId, variants: $variants) {
+                            productVariants{
+                                id
+                                inventoryQuantity
+                                price
+                            }
+                            userErrors {
+                                message
+                                field
+                            }
+                        }
+                    }",
+                    stagedUploadPath: $stagedUploadPath
+                )   {
+                        bulkOperation {
+                            id
+                            url
+                            status
+                        }
+                        userErrors {
+                            message
+                            field
+                        }
+                    }
+            }
+        '''
+
+        variables = {
+            "stagedUploadPath": staged_target['data']['stagedUploadsCreate']['stagedTargets'][0]['parameters'][3]['value']
+        }
+
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": mutation, "variables": variables})
+
+        print(response)
+        print(response.json())
+        print('')
+
+
     def create_collection(self, client, descriptionHtml, image_src, title, appliedDisjuntively, column, relation, condition):
         # product_id = pd.read_csv(f'Product_By_Category2/ {title}.csv', usecols='product_id')['product_id'].tolist()
 
@@ -1290,6 +1373,10 @@ if __name__ == '__main__':
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
 
+    # Get products id by handle multiple variants
+    handles = ['boy-s-superman-costume-ru881298','boy-s-superman-costume-ru881298-1', 'boy-s-superman-costume-ru881298-2']
+    s.get_products_id_by_handle(client=client, handles=handles)
+
     # activate product
     # has_next_page = True
     # while has_next_page:
@@ -1432,7 +1519,22 @@ if __name__ == '__main__':
     # s.get_products_id_by_handle(client, handles=f_handles)
 
     # get variant id
-    product_ids = ['7628276564025', '7625947349049']
-    f_prod_id = ','.join(product_ids)
-    variables = {'query': "product_ids:{}".format(f_prod_id)}
-    s.get_variants_id_by_query(client=client, variables=variables)
+    # product_ids = ['7628276564025', '7625947349049']
+    # f_prod_id = ','.join(product_ids)
+    # variables = {'query': "product_ids:{}".format(f_prod_id)}
+    # s.get_variants_id_by_query(client=client, variables=variables)
+
+    # update inventory quantity
+    # quantities = [
+    #     {
+    #         "inventoryItemId": "gid://shopify/InventoryItem/45837005258809",
+    #         "locationId": "gid://shopify/Location/73063170105",
+    #         "quantity": 807
+    #     },
+    #     {
+    #         "inventoryItemId": "gid://shopify/InventoryItem/45837006012473",
+    #         "locationId": "gid://shopify/Location/73063170105",
+    #         "quantity": 95
+    #     }
+    # ]
+    # s.update_inventories(client, quantities=quantities)
