@@ -176,7 +176,7 @@ def update_button():
 # Product Update
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/update_products.csv', nrows=249)
-    for update_df in chunked_df:
+    for update_df in chunked_df[21:31]:
 
         # =========================================Get product_id by handle===============================================
         handles = update_df['Unique Handle'].to_list()
@@ -203,8 +203,6 @@ def update_button():
         while not created:
             created = import_status(client)
 
-        time.sleep(300)
-
         # ===============================Get variant_id and inventory id by product id=====================================
         update_df['id_number'] = update_df.apply(lambda x: x['id'].split('/')[-1], axis=1)
         product_ids = update_df['id_number']
@@ -226,8 +224,6 @@ def update_button():
         created = False
         while not created:
             created = import_status(client)
-
-        time.sleep(300)
 
         # =====================================Update Shopify variant inv qty================================================
         quantities = csv_to_quantities(csv_filename='data/update_product_variants_with_vids_invids.csv')
@@ -316,7 +312,7 @@ close_button = Button(window,
                    bg='light grey',
                    width=70,
                    height=20,
-                   command=close_button)
+                   command=window.destroy)
 close_button.grid(column=4, row=4, sticky='SE', pady=(135, 15))
 
 
