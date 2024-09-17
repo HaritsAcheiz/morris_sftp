@@ -192,6 +192,20 @@ def fill_media(original_src, alt):
         return media_attr
 
 
+def fill_variant_id(shopify_df, product_id_filepath, mode):
+        # Fill variant id
+        variant_ids_df = pd.read_csv(product_id_filepath)
+        shopify_df = pd.merge(shopify_df, variant_ids_df, how='left', left_on='id', right_on='product_id')
+        shopify_df.fillna('', inplace=True)
+        shopify_df.drop(columns=['Unnamed: 0', 'handle', 'product_id'], inplace=True)
+        if mode == 'create':
+            shopify_df.to_csv('data/create_product_variants_with_vids_invids.csv', index=False)
+        elif mode == 'update':
+            shopify_df.to_csv('data/update_product_variants_with_vids_invids.csv', index=False)
+        else:
+            print('Mode is undefined')
+
+
 def str_to_bool(s):
     if (s == 'True') | (s == 'true'):
 
@@ -246,6 +260,7 @@ def group_create_update():
     update_df = shopify_df[shopify_df['id'] != '']
     create_df.to_csv('data/create_products.csv')
     update_df.to_csv('data/update_products.csv')
+
 
 def fill_product_id(product_df, product_id_filepath, mode):
     # Fill product id
@@ -429,10 +444,10 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['input']['giftCard'] = str_to_bool('False') #df.iloc[index]['Gift Card']
             # data_dict['input']['giftCardTemplateSuffix'] = ''
             # data_dict['input']['handle'] = df.iloc[index]['Unique Handle']
-            data_dict['input']['id'] = df.iloc[index]['id'].split('/')[-1]
-            data_dict['input']['metafields'] = {'id': 'gid://shopify/MetafieldDefinition/46708195385',
-                                                'value': str_to_bool(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
-                                                }
+            data_dict['input']['id'] = df.iloc[index]['id']
+            # data_dict['input']['metafields'] = {'id': df.iloc[index]['metafield_id'],
+            #                                     'value': str_to_bool(df.iloc[index]['enable_best_price (product.metafields.custom.enable_best_price)'])
+            #                                     }
             # product_options = [fill_opt(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
 
             # if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
@@ -472,38 +487,53 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             datas.append(data_dict.copy())
 
-    elif mode == 'vu':
+    elif mode == 'vup':
         datas = []
         for index in df.index:
-            data_dict = {"allowPartialUpdates": False, "media": list(), "productId": '', "variants": list()}
-            if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
-                data_dict.pop("media", None)
-            else:
-                pass
+            data_dict = {"allowPartialUpdates": False, "productId": '', "variants": list()}
             data_dict['productId'] = df.iloc[index]['id']
+
             variants = list()
             variant = dict()
-            variant['id'] = df.iloc[index]['var_id']
+            variant['id'] = df.iloc[index]['variant_id']
+            variant['barcode'] = str(df.iloc[index]['Variant Barcode'])
+            if df.iloc[index]['Variant Compare At Price'] == '':
+                pass
+            else:
+                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']), 2)
+
+            variant_measure = {'weight': {'unit': 'GRAMS', 'value': 0.0}}
+            try:
+                variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
+                variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
+            except:
+                pass
+
+            variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
 
             var_inv_item = dict()
             var_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
+            var_inv_item['tracked'] = True
+            var_inv_item['measurement'] = variant_measure
+            var_inv_item['requiresShipping'] = str_to_bool('true')
+            var_inv_item['sku'] = df.iloc[index]['Variant SKU']
+            var_inv_item['tracked'] = tracker_mapper[df.iloc[index]['Variant Inventory Tracker']]
             variant['inventoryItem'] = var_inv_item
 
-            variants_inv_qty = list()
-            if df.iloc[index]['Variant Inventory Qty'] == '':
-                variant_inv_qty = {'availableQuantity': 0, 'locationId': os.getenv('SHOPIFY_LOCATION_ID')}
-            else:
-                variant_inv_qty = {'availableQuantity': 0, 'locationId': os.getenv('SHOPIFY_LOCATION_ID')}
-                try:
-                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'])
-                except ValueError:
-                    variant_inv_qty['availableQuantity'] = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
-                variant_inv_qty['locationId'] = os.getenv('SHOPIFY_LOCATION_ID')
+            product_options = [fill_opt_var(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+                product_options = [x for x in product_options if x is not None]
+                variant['optionValues'] = product_options
 
-            variants_inv_qty.append(variant_inv_qty)
-            variant['inventoryQuantities'] = variants_inv_qty
+            try:
+                variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+            except:
+                variant['price'] = 0.00
 
-            variant['price'] = df.iloc[index]['Variant Price']
+            variant['taxable'] = str_to_bool('true')
+            variants.append(variant)
+            data_dict['variants'] = variants
+            datas.append(data_dict.copy())
 
     elif mode == 'ap':
         datas = []
@@ -540,6 +570,33 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             for item in datas:
                 json.dump(item, jsonlfile, default=str)
                 jsonlfile.write('\n')
+
+
+def csv_to_quantities(csv_filename):
+    print("Converting csv to quantities...")
+    df = pd.read_csv(csv_filename)
+    df.fillna('', inplace=True)
+    quantities = list()
+    for index in df.index:
+        if (df.iloc[index]['Variant Inventory Qty'] == '') | (df.iloc[index]['Variant Price'] == 0):
+            qty = {
+                "inventoryItemId": df.iloc[index]['inventory_id'],
+                "locationId": "gid://shopify/Location/73063170105",
+                "quantity": 0
+            }
+        else:
+            try:
+                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
+            except ValueError:
+                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
+            qty = {
+                "inventoryItemId": df.iloc[index]['inventory_id'],
+                "locationId": "gid://shopify/Location/73063170105",
+                "quantity": variant_inv_qty
+            }
+        quantities.append(qty.copy())
+
+    return quantities
 
 
 def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame, mode='create'):

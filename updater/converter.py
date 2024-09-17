@@ -547,7 +547,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             data_dict['variants'] = variants
             datas.append(data_dict.copy())
 
-
     elif mode == 'ap':
         datas = []
         for index in df.index:

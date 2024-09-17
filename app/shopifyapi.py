@@ -252,6 +252,39 @@ class ShopifyApp:
         print(response.json())
         print('')
 
+    def update_inventories(self, client, quantities):
+        mutation = '''
+        mutation inventorySetQuantities($input: InventorySetQuantitiesInput!) {
+                             inventorySetQuantities(input: $input)
+                             {
+                                userErrors {
+                                            field
+                                            message
+                                }
+                             }
+        }
+        '''
+
+        variables = {
+            "input": {
+                "ignoreCompareQuantity": True,
+                "name": "available",
+                "quantities": quantities,
+                "reason": "correction"
+            }
+        }
+
+        while 1:
+            try:
+                response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                                       json={'query': mutation, 'variables': variables})
+                print(response)
+                print(response.json())
+                print('')
+                break
+            except Exception as e:
+                print(e)
+
 
     ## Stage Upload
     def generate_staged_target(self, client):
@@ -377,6 +410,41 @@ class ShopifyApp:
             }
         '''
         variables = {'query': "handle:{}".format(f_handles)}
+        response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
+                               json={"query": query, 'variables':variables})
+        print(response)
+        print(response.json())
+        print('')
+
+        return response.json()
+
+
+    def get_variants_id_by_query(self, client, variables):
+        print('Getting product id...')
+        query = '''
+            query(
+                $query: String
+            )
+            {
+                productVariants(first: 250, query: $query) {
+                    edges {
+                        node {
+                            product {
+                                id
+                            }
+                            id
+                            inventoryItem{
+                                id
+                            }
+                        }
+                    }
+                    pageInfo {
+                        endCursor
+                        hasNextPage
+                    }
+                }
+            }
+        '''
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
         print(response)
@@ -1252,6 +1320,9 @@ if __name__ == '__main__':
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
 
+    handles = ['38-exit-ez-fx-kit', 'rest-in-peace-cross-tombstone']
+    response = s.get_products_id_by_handle(client, handles=handles)
+    print(response)
     # s.get_metafields(client)
 
     # activate product

@@ -96,7 +96,7 @@ def import_button():
 # Product Create
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/create_products.csv', nrows=249)
-    for create_df in chunked_df[0:1]:
+    for create_df in chunked_df[0:4]:
 
         # =======================================Merge create product with image =========================================
         image_df = pd.read_csv('data/product_images.csv')
@@ -117,7 +117,9 @@ def import_button():
         handles = create_df['Unique Handle'].to_list()
         product_ids = list()
         product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
-        extracted_product_ids = [x['node'] for x in product_ids]
+        extracted_handle = [x['node']['handle'] for x in product_ids]
+        extracted_id = [x['node']['id'] for x in product_ids]
+        extracted_metafield_id = [x['node']['metafield']['id'] for x in product_ids]
         product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
         product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
@@ -164,7 +166,7 @@ def update_button():
     for handles in chunked_handles:
         product_ids.extend(sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges'])
 
-    extracted_product_ids = [x['node'] for x in product_ids]
+    extracted_product_ids = [{'handle': x['node']['handle'], 'id': x['node']['id']} for x in product_ids]
     product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
     product_id_handle_df.to_csv('data/product_ids.csv', index=False)
 
@@ -174,13 +176,13 @@ def update_button():
 # Product Update
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/update_products.csv', nrows=249)
-    for update_df in chunked_df[0:1]:
+    for update_df in chunked_df:
 
         # =========================================Get product_id by handle===============================================
         handles = update_df['Unique Handle'].to_list()
         product_ids = list()
         product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
-        extracted_product_ids = [x['node'] for x in product_ids]
+        extracted_product_ids = [{'handle': x['node']['handle'], 'id': x['node']['id']} for x in product_ids]
         product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
         product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
 
@@ -203,14 +205,33 @@ def update_button():
 
         time.sleep(300)
 
-        # =====================================Bulk create Shopify variant================================================
-        csv_to_jsonl(csv_filename='data/update_products_with_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vu')
+        # ===============================Get variant_id and inventory id by product id=====================================
+        update_df['id_number'] = update_df.apply(lambda x: x['id'].split('/')[-1], axis=1)
+        product_ids = update_df['id_number']
+        f_prod_id = ','.join(product_ids)
+        variables = {'query': "product_ids:{}".format(f_prod_id)}
+        variant_ids = sa.get_variants_id_by_query(client, variables=variables)['data']['productVariants']['edges']
+        extracted_variant_ids = [{'product_id': x['node']['product']['id'], 'variant_id': x['node']['id'], 'inventory_id': x['node']['inventoryItem']['id']} for x in variant_ids]
+        variant_id_df = pd.DataFrame.from_records(extracted_variant_ids)
+        variant_id_df.to_csv('data/update_product_vids_invids.csv', index=False)
+
+        # ========================================Fill create product_id =================================================
+        fill_variant_id(update_df, product_id_filepath='data/update_product_vids_invids.csv', mode='update')
+
+        # ===================================Bulk Update Shopify variant price============================================
+        csv_to_jsonl(csv_filename='data/update_product_variants_with_vids_invids.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vup')
         staged_target = sa.generate_staged_target(client)
         sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
         sa.update_variants(client, staged_target=staged_target)
         created = False
         while not created:
             created = import_status(client)
+
+        time.sleep(300)
+
+        # =====================================Update Shopify variant inv qty================================================
+        quantities = csv_to_quantities(csv_filename='data/update_product_variants_with_vids_invids.csv')
+        sa.update_inventories(client, quantities=quantities)
 
     print(f'Data length : {len(chunked_df)}')
 
