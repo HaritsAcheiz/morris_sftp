@@ -2,6 +2,7 @@ from sftp import connect_sftp, get_latest_files, download_file, list_directory
 import os
 from dotenv import load_dotenv
 from converter import convert_to_shopify
+from shopify import ShopifyApp
 
 load_dotenv()
 
@@ -56,6 +57,8 @@ if __name__ == '__main__':
         convert_to_shopify(file_path=inventory_path, file_type='inventory')
     except FileNotFoundError as e:
         print(e)
+
+
 
 
 
