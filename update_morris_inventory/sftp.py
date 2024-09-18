@@ -85,4 +85,6 @@ def main():
 
 
 if __name__ == "__main__":
-    main()
+    # main()
+    local_path = './test'
+    # os.makedirs(local_path, exist_ok=True)
