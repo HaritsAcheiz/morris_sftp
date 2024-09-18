@@ -13,7 +13,7 @@ from downloader import Downloader
 
 sa = None
 staged_target = None
-# os.chdir('../')
+os.chdir('../')
 
 # Filebrowser function
 def browse_file():
@@ -117,9 +117,7 @@ def import_button():
         handles = create_df['Unique Handle'].to_list()
         product_ids = list()
         product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
-        extracted_handle = [x['node']['handle'] for x in product_ids]
-        extracted_id = [x['node']['id'] for x in product_ids]
-        extracted_metafield_id = [x['node']['metafield']['id'] for x in product_ids]
+        extracted_product_ids = [{'handle': x['node']['handle'], 'id': x['node']['id']} for x in product_ids]
         product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
         product_id_handle_df.to_csv('data/create_product_ids.csv', index=False)
 
@@ -176,7 +174,7 @@ def update_button():
 # Product Update
     # ====================================Handle limit with chunked data==============================================
     chunked_df = chunk_data('data/update_products.csv', nrows=249)
-    for update_df in chunked_df[21:31]:
+    for update_df in chunked_df[51:61]:
 
         # =========================================Get product_id by handle===============================================
         handles = update_df['Unique Handle'].to_list()

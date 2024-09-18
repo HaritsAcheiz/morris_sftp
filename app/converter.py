@@ -414,19 +414,21 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
-
-                links = literal_eval(df.iloc[index]['Link'])
-                alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
-                print(links)
-                for i in range(0, len(links)):
-                    try:
-                        media['alt'] = alt_texts[i]
-                    except:
-                        media['alt'] = ''
-                    media['mediaContentType'] = 'IMAGE'
-                    media['originalSource'] = links[i]
-                    media_list.append(media)
-                data_dict['media'] = media_list
+                try:
+                    links = literal_eval(df.iloc[index]['Link'])
+                    alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
+                    print(links)
+                    for i in range(0, len(links)):
+                        try:
+                            media['alt'] = alt_texts[i]
+                        except:
+                            media['alt'] = ''
+                        media['mediaContentType'] = 'IMAGE'
+                        media['originalSource'] = links[i]
+                        media_list.append(media)
+                    data_dict['media'] = media_list
+                except Exception:
+                    pass
 
             datas.append(data_dict.copy())
 
