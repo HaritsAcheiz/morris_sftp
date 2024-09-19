@@ -1,11 +1,16 @@
 from glob import glob
 from time import sleep
+from typing import List, Dict
+
 import httpx
 from dataclasses import dataclass
 import json
 import os
 import pandas as pd
 from dotenv import load_dotenv
+import asyncio
+from httpx import AsyncClient
+
 from datetime import datetime, date
 from converter import csv_to_jsonl, get_handles
 
@@ -1315,14 +1320,95 @@ class ShopifyApp:
 
         return response.json()
 
+
+    async def get_product_handle_by_sku(self, client: httpx.AsyncClient, sku: str, semaphore: asyncio.Semaphore) -> Dict[str, str | None]:
+        query = """
+        query getProductHandleBySKU($query: String!) {
+          productVariants(first: 1, query: $query) {
+            edges {
+              node {
+                id
+                inventoryItem{
+                    id
+                    sku
+                }
+              }
+            }
+          }
+        }
+        """
+        variables = {"query": f"sku:{sku}"}
+
+        for attempt in range(3):
+            async with semaphore:
+                try:
+                    print(f"Sending query for SKU: {sku}")  # Log the SKU being queried
+                    response = await client.post(
+                        f"https://{os.getenv('STORE_NAME')}.myshopify.com/admin/api/2024-07/graphql.json",
+                        headers={
+                            'Content-Type': 'application/json',
+                            'X-Shopify-Access-Token': self.access_token,
+                        },
+                        json={"query": query, "variables": variables}
+                    )
+
+                    response.raise_for_status()  # Raise an exception for HTTP errors
+                    data = response.json()
+
+                    if 'errors' in data:  # Rate limit hit
+                        print(f"Rate limit hit for SKU: {sku}. Retrying...")
+                        delay = 1 * (2 ** attempt)  # Exponential backoff
+                        await asyncio.sleep(delay)
+                        continue  # Retry the request
+
+                    result = {'var_id': data['data']['productVariants']['edges'][0]['node']['id'],
+                              'inv_id': data['data']['productVariants']['edges'][0]['node']['inventoryItem']['id'],
+                              'sku': data['data']['productVariants']['edges'][0]['node']['inventoryItem']['sku']}
+
+                    return result
+
+                except httpx.HTTPStatusError as e:
+                    print(f"Error fetching product handle for SKU: {sku}")
+                    print(f"Error Response: {e.response.text}")
+                    print(f"Status: {e.response.status_code} | StatusText: {e.response.reason_phrase}")
+                except Exception as e:
+                    print(f"Error Message: {str(e)}")
+                    print(response.status_code)
+                    print(data)
+
+                result = {'var_id': '',
+                          'inv_id': '',
+                          'sku': sku}
+
+                return result
+
+
+    async def get_product_handles_for_skus(self, skus: List[str]) -> List[Dict[str, str | None]]:
+        semaphore = asyncio.Semaphore(250)
+        async with httpx.AsyncClient() as client:
+            tasks = [self.get_product_handle_by_sku(client, sku, semaphore) for sku in skus]
+            results = await asyncio.gather(*tasks)
+        return results
+
+
+    async def main(self):
+        morris_df = pd.read_csv('./data/full_template.csv')
+        skus = morris_df['sku'].to_list()
+        records = await self.get_product_handles_for_skus(skus)
+        shopify_df = pd.DataFrame.from_records(records)
+        result_df = pd.merge(morris_df, shopify_df, how='left', on='sku')
+        result_df.to_csv('./data/morris_file_var_id_inv_id.csv', index=False)
+
+
 if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
+    asyncio.run(s.main())
 
-    handles = ['38-exit-ez-fx-kit', 'rest-in-peace-cross-tombstone']
-    response = s.get_products_id_by_handle(client, handles=handles)
-    print(response)
+    # handles = ['38-exit-ez-fx-kit', 'rest-in-peace-cross-tombstone']
+    # response = s.get_products_id_by_handle(client, handles=handles)
+    # print(response)
     # s.get_metafields(client)
 
     # activate product

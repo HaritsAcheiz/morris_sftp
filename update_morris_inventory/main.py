@@ -2,7 +2,7 @@ from sftp import connect_sftp, get_latest_files, download_file, list_directory
 import os
 from dotenv import load_dotenv
 from converter import convert_to_shopify
-from shopify import ShopifyApp
+from shopifyapi import ShopifyApp
 
 load_dotenv()
 
