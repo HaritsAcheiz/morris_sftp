@@ -1321,7 +1321,7 @@ class ShopifyApp:
         return response.json()
 
 
-    async def get_product_handle_by_sku(self, client: httpx.AsyncClient, sku: str, semaphore: asyncio.Semaphore) -> Dict[str, str | None]:
+    async def get_id_by_sku(self, client: httpx.AsyncClient, sku: str, semaphore: asyncio.Semaphore) -> Dict[str, str | None]:
         query = """
         query getProductHandleBySKU($query: String!) {
           productVariants(first: 1, query: $query) {
@@ -1357,7 +1357,7 @@ class ShopifyApp:
 
                     if 'errors' in data:  # Rate limit hit
                         print(f"Rate limit hit for SKU: {sku}. Retrying...")
-                        delay = 1 * (2 ** attempt)  # Exponential backoff
+                        delay = 2 * (2 ** attempt)  # Exponential backoff
                         await asyncio.sleep(delay)
                         continue  # Retry the request
 
@@ -1383,18 +1383,18 @@ class ShopifyApp:
                 return result
 
 
-    async def get_product_handles_for_skus(self, skus: List[str]) -> List[Dict[str, str | None]]:
-        semaphore = asyncio.Semaphore(250)
+    async def get_id_for_skus(self, skus: List[str]) -> List[Dict[str, str | None]]:
+        semaphore = asyncio.Semaphore(10)
         async with httpx.AsyncClient() as client:
-            tasks = [self.get_product_handle_by_sku(client, sku, semaphore) for sku in skus]
+            tasks = [self.get_id_by_sku(client, sku, semaphore) for sku in skus]
             results = await asyncio.gather(*tasks)
         return results
 
 
-    async def main(self):
+    async def async_get_id_for_skus(self):
         morris_df = pd.read_csv('./data/full_template.csv')
         skus = morris_df['sku'].to_list()
-        records = await self.get_product_handles_for_skus(skus)
+        records = await self.get_id_for_skus(skus)
         shopify_df = pd.DataFrame.from_records(records)
         result_df = pd.merge(morris_df, shopify_df, how='left', on='sku')
         result_df.to_csv('./data/morris_file_var_id_inv_id.csv', index=False)
@@ -1404,7 +1404,7 @@ if __name__ == '__main__':
 
     s = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = s.create_session()
-    asyncio.run(s.main())
+    asyncio.run(s.async_get_id_for_skus())
 
     # handles = ['38-exit-ez-fx-kit', 'rest-in-peace-cross-tombstone']
     # response = s.get_products_id_by_handle(client, handles=handles)
