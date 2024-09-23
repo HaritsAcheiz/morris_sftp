@@ -248,7 +248,7 @@ def get_ids(filepath, nrows=250):
     return chunked_ids
 
 
-def chunk_data(filepath, usecols=None, nrows=250):
+def chunk_data(filepath, usecols=None, nrows=249):
     chunked_df = list()
     if usecols:
         df = pd.read_csv(filepath, usecols=usecols)
@@ -605,45 +605,51 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
 def csv_to_quantities(csv_filename, mode='update'):
     print("Converting csv to quantities...")
-    df = pd.read_csv(csv_filename)
-    df.fillna('', inplace=True)
-    quantities = list()
-    if mode == 'update':
-        for index in df.index:
-            # Normal update
-            if df.iloc[index]['Variant Inventory Qty'] == '':
+    # df = pd.read_csv(csv_filename)
+    chunked_df = chunk_data(csv_filename)
+    chunked_quantities = list()
+    for df in chunked_df:
+        quantities = list()
+        df.dropna(subset='inv_id', inplace=True, ignore_index=True)
+        df.fillna('', inplace=True)
+        if mode == 'update':
+            for index in df.index:
+                # Normal update
+                if df.iloc[index]['Variant Inventory Qty'] == '':
+                    qty = {
+                        "inventoryItemId": df.iloc[index]['inv_id'],
+                        "locationId": "gid://shopify/Location/73063170105",
+                        "quantity": 0
+                    }
+                else:
+                    try:
+                        variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
+                    except ValueError:
+                        variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
+                    qty = {
+                        "inventoryItemId": df.iloc[index]['inv_id'],
+                        "locationId": "gid://shopify/Location/73063170105",
+                        "quantity": variant_inv_qty
+                    }
+                quantities.append(qty.copy())
+
+                # Reset Quantities
+        elif mode == 'reset':
+            for index in df.index:
                 qty = {
                     "inventoryItemId": df.iloc[index]['inv_id'],
                     "locationId": "gid://shopify/Location/73063170105",
                     "quantity": 0
                 }
-            else:
-                try:
-                    variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
-                except ValueError:
-                    variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
-                qty = {
-                    "inventoryItemId": df.iloc[index]['inv_id'],
-                    "locationId": "gid://shopify/Location/73063170105",
-                    "quantity": variant_inv_qty
-                }
-            quantities.append(qty.copy())
 
-            # Reset Quantities
-    elif mode == 'reset':
-        for index in df.index:
-            qty = {
-                "inventoryItemId": df.iloc[index]['inv_id'],
-                "locationId": "gid://shopify/Location/73063170105",
-                "quantity": 0
-            }
+                quantities.append(qty.copy())
 
-            quantities.append(qty.copy())
+        else:
+            print('Mode is not defined!')
 
-    else:
-        print('Mode is not defined!')
+        chunked_quantities.append(quantities)
 
-    return quantities
+    return chunked_quantities
 
 
 def merge_images(product_df: pd.DataFrame, image_df: pd.DataFrame):

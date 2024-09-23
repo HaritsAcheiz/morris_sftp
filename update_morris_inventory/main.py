@@ -24,56 +24,56 @@ def import_status(client):
     return created
 
 if __name__ == '__main__':
-    hostname = os.getenv('MC_HOST')
-    username = os.getenv('MC_USER')
-    password = os.getenv('MC_PASS')
-    remote_path = '/'
-    local_path = './data'
-    sftp = None
+    # hostname = os.getenv('MC_HOST')
+    # username = os.getenv('MC_USER')
+    # password = os.getenv('MC_PASS')
+    # remote_path = '/'
+    # local_path = './data'
+    # sftp = None
 
-    # Download file from SFTP
+    # # Download file from SFTP
 
-    try:
-        sftp = connect_sftp(hostname, username, password)
+    # try:
+    #     sftp = connect_sftp(hostname, username, password)
 
-    # Get list of file
-        # list_directory(sftp, remote_path=remote_path)
+    # # Get list of file
+    #     # list_directory(sftp, remote_path=remote_path)
 
-    # Get latest file
-        latest_full_product, latest_inventory = get_latest_files(sftp, remote_path)
-        os.makedirs(local_path, exist_ok=True)
-        print(latest_full_product)
-        if latest_full_product:
-            download_file(sftp, os.path.join(remote_path, latest_full_product),
-                          os.path.join(local_path, latest_full_product))
-        else:
-            print("No AvailableBatch_Full_Product_Data file found")
+    # # Get latest file
+    #     latest_full_product, latest_inventory = get_latest_files(sftp, remote_path)
+    #     os.makedirs(local_path, exist_ok=True)
+    #     print(latest_full_product)
+    #     if latest_full_product:
+    #         download_file(sftp, os.path.join(remote_path, latest_full_product),
+    #                       os.path.join(local_path, latest_full_product))
+    #     else:
+    #         print("No AvailableBatch_Full_Product_Data file found")
 
-        # print(latest_inventory)
-        # if latest_inventory:
-        #     download_file(sftp, os.path.join(remote_path, latest_inventory),
-        #                   os.path.join(local_path, latest_inventory))
-        # else:
-        #     print("No AvailableBatch_Inventory_Only file found")
-    #
-    except Exception as e:
-        print(f"An error occurred: {str(e)}")
-    finally:
-        if sftp:
-            sftp.close()
+    #     # print(latest_inventory)
+    #     # if latest_inventory:
+    #     #     download_file(sftp, os.path.join(remote_path, latest_inventory),
+    #     #                   os.path.join(local_path, latest_inventory))
+    #     # else:
+    #     #     print("No AvailableBatch_Inventory_Only file found")
+    # #
+    # except Exception as e:
+    #     print(f"An error occurred: {str(e)}")
+    # finally:
+    #     if sftp:
+    #         sftp.close()
 
-    # hardcode path to test
-    full_product_path = f'./data/{latest_full_product}'
-    # inventory_path = f'./data/{latest_inventory}'
+    # # hardcode path to test
+    # full_product_path = f'./data/{latest_full_product}'
+    # # inventory_path = f'./data/{latest_inventory}'
 
-    # Parse xml file and convert to shopify template
-    try:
-        full_product_path = os.path.join(local_path, latest_full_product)
-        # inventory_path = os.path.join(local_path, latest_inventory)
-        convert_to_shopify(file_path=full_product_path, file_type='full')
-        # convert_to_shopify(file_path=inventory_path, file_type='inventory')
-    except FileNotFoundError as e:
-        print(e)
+    # # Parse xml file and convert to shopify template
+    # try:
+    #     full_product_path = os.path.join(local_path, latest_full_product)
+    #     # inventory_path = os.path.join(local_path, latest_inventory)
+    #     convert_to_shopify(file_path=full_product_path, file_type='full')
+    #     # convert_to_shopify(file_path=inventory_path, file_type='inventory')
+    # except FileNotFoundError as e:
+    #     print(e)
 
     sa = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
     client = sa.create_session()
@@ -82,9 +82,9 @@ if __name__ == '__main__':
     # asyncio.run(sa.async_get_id_for_skus())
 
     # ======================================Update Shopify variant inv qty==========================================
-    quantities = csv_to_quantities(csv_filename='./data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')
-    print(quantities)
-    sa.update_inventories(client, quantities=quantities)
+    chunked_quantities = csv_to_quantities(csv_filename='./data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')
+    for quantities in chunked_quantities:
+        sa.update_inventories(client, quantities=quantities)
 
 
 
