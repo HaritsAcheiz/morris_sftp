@@ -13,12 +13,21 @@ tracker_mapper = {'shopify': True, '': False}
 
 
 def convert_to_shopify(file_path, file_type):
-    df = pd.read_xml(file_path, xpath='//available')
+    morris_df = pd.read_xml(file_path, xpath='//available')
     if file_type == 'full':
         # df.drop(columns=['AvailableBatch', 'Type', 'Date', 'available', 'activeStatus', 'code', 'baggable'])
-        df.iloc[:, range(len(df.columns))].to_csv('data/full_template.csv', index=False)
-    elif file_type == 'inventory':
-        df.iloc[:, range(len(df.columns))].to_csv('data/inventory_template.csv', index=False)
+        # df.iloc[:, range(len(df.columns))].to_csv('data/full_template.csv', index=False)
+        shopify_df = pd.DataFrame()
+        shopify_df['Variant SKU'] = morris_df['sku']
+        shopify_df['Variant Inventory Tracker'] = 'shopify'
+        shopify_df['Variant Inventory Qty'] = morris_df['qty']
+        shopify_df['Variant Inventory Policy'] = 'deny'
+        shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
+        shopify_df['Variant Barcode'] = morris_df['gtin']
+        shopify_df.fillna('', inplace=True)
+        shopify_df.to_csv('data/morris_full_inventory_shopify.csv', index=False)
+    # elif file_type == 'inventory':
+    #     df.iloc[:, range(len(df.columns))].to_csv('data/inventory_template.csv', index=False)
 
 
 def to_handle(title, alt_title):
@@ -594,29 +603,45 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 jsonlfile.write('\n')
 
 
-def csv_to_quantities(csv_filename):
+def csv_to_quantities(csv_filename, mode='update'):
     print("Converting csv to quantities...")
     df = pd.read_csv(csv_filename)
     df.fillna('', inplace=True)
     quantities = list()
-    for index in df.index:
-        if (df.iloc[index]['Variant Inventory Qty'] == '') | (df.iloc[index]['Variant Price'] == 0):
+    if mode == 'update':
+        for index in df.index:
+            # Normal update
+            if df.iloc[index]['Variant Inventory Qty'] == '':
+                qty = {
+                    "inventoryItemId": df.iloc[index]['inventory_id'],
+                    "locationId": "gid://shopify/Location/73063170105",
+                    "quantity": 0
+                }
+            else:
+                try:
+                    variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
+                except ValueError:
+                    variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
+                qty = {
+                    "inventoryItemId": df.iloc[index]['inventory_id'],
+                    "locationId": "gid://shopify/Location/73063170105",
+                    "quantity": variant_inv_qty
+                }
+            quantities.append(qty.copy())
+
+            # Reset Quantities
+    elif mode == 'reset':
+        for index in df.index:
             qty = {
                 "inventoryItemId": df.iloc[index]['inventory_id'],
                 "locationId": "gid://shopify/Location/73063170105",
                 "quantity": 0
             }
-        else:
-            try:
-                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'])
-            except ValueError:
-                variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
-            qty = {
-                "inventoryItemId": df.iloc[index]['inventory_id'],
-                "locationId": "gid://shopify/Location/73063170105",
-                "quantity": variant_inv_qty
-            }
-        quantities.append(qty.copy())
+
+            quantities.append(qty.copy())
+
+    else:
+        print('Mode is not defined!')
 
     return quantities
 

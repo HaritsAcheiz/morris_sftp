@@ -1,10 +1,27 @@
 from sftp import connect_sftp, get_latest_files, download_file, list_directory
 import os
 from dotenv import load_dotenv
-from converter import convert_to_shopify
+from converter import *
 from shopifyapi import ShopifyApp
+import time
+import asyncio
 
 load_dotenv()
+
+sa = None
+
+def import_status(client):
+    # Check Bulk Import status
+    print('Checking')
+    global sa
+    response = sa.pool_operation_status(client)
+    if response['data']['currentBulkOperation']['status'] == 'COMPLETED':
+        created = True
+    else:
+        time.sleep(10)
+        created = False
+
+    return created
 
 if __name__ == '__main__':
     hostname = os.getenv('MC_HOST')
@@ -32,12 +49,12 @@ if __name__ == '__main__':
         else:
             print("No AvailableBatch_Full_Product_Data file found")
 
-        print(latest_inventory)
-        if latest_inventory:
-            download_file(sftp, os.path.join(remote_path, latest_inventory),
-                          os.path.join(local_path, latest_inventory))
-        else:
-            print("No AvailableBatch_Inventory_Only file found")
+        # print(latest_inventory)
+        # if latest_inventory:
+        #     download_file(sftp, os.path.join(remote_path, latest_inventory),
+        #                   os.path.join(local_path, latest_inventory))
+        # else:
+        #     print("No AvailableBatch_Inventory_Only file found")
     #
     except Exception as e:
         print(f"An error occurred: {str(e)}")
@@ -47,16 +64,28 @@ if __name__ == '__main__':
 
     # hardcode path to test
     full_product_path = f'./data/{latest_full_product}'
-    inventory_path = f'./data/{latest_inventory}'
+    # inventory_path = f'./data/{latest_inventory}'
 
     # Parse xml file and convert to shopify template
     try:
         full_product_path = os.path.join(local_path, latest_full_product)
-        inventory_path = os.path.join(local_path, latest_inventory)
+        # inventory_path = os.path.join(local_path, latest_inventory)
         convert_to_shopify(file_path=full_product_path, file_type='full')
-        convert_to_shopify(file_path=inventory_path, file_type='inventory')
+        # convert_to_shopify(file_path=inventory_path, file_type='inventory')
     except FileNotFoundError as e:
         print(e)
+
+    sa = ShopifyApp(store_name=os.getenv('STORE_NAME'), access_token=os.getenv('ACCESS_TOKEN'))
+    client = sa.create_session()
+
+    # ===========================================Get product_id by sku==================================================
+    asyncio.run(sa.async_get_id_for_skus())
+
+    # ======================================Update Shopify variant inv qty==========================================
+    quantities = csv_to_quantities(csv_filename='./data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')
+    print(quantities)
+    sa.update_inventories(client, quantities=quantities)
+
 
 
 

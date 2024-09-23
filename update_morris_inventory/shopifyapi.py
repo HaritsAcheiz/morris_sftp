@@ -416,7 +416,7 @@ class ShopifyApp:
         '''
         variables = {'query': "handle:{}".format(f_handles)}
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
-                               json={"query": query, 'variables':variables})
+                               json={"query": query, 'variables': variables})
         print(response)
         print(response.json())
         print('')
@@ -1392,12 +1392,12 @@ class ShopifyApp:
 
 
     async def async_get_id_for_skus(self):
-        morris_df = pd.read_csv('./data/full_template.csv')
-        skus = morris_df['sku'].to_list()
+        morris_df = pd.read_csv('./data/morris_full_inventory_shopify.csv')
+        skus = morris_df['Variant SKU'].to_list()
         records = await self.get_id_for_skus(skus)
         shopify_df = pd.DataFrame.from_records(records)
-        result_df = pd.merge(morris_df, shopify_df, how='left', on='sku')
-        result_df.to_csv('./data/morris_file_var_id_inv_id.csv', index=False)
+        result_df = pd.merge(morris_df, shopify_df, how='left', left_on='Variant SKU', right_on='sku')
+        result_df.to_csv('./data/morris_full_inventory_shopify_var_id_inv_id.csv', index=False)
 
 
 if __name__ == '__main__':
