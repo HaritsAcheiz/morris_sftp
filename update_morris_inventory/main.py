@@ -79,7 +79,7 @@ if __name__ == '__main__':
     client = sa.create_session()
 
     # ===========================================Get product_id by sku==================================================
-    asyncio.run(sa.async_get_id_for_skus())
+    # asyncio.run(sa.async_get_id_for_skus())
 
     # ======================================Update Shopify variant inv qty==========================================
     quantities = csv_to_quantities(csv_filename='./data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')

@@ -613,7 +613,7 @@ def csv_to_quantities(csv_filename, mode='update'):
             # Normal update
             if df.iloc[index]['Variant Inventory Qty'] == '':
                 qty = {
-                    "inventoryItemId": df.iloc[index]['inventory_id'],
+                    "inventoryItemId": df.iloc[index]['inv_id'],
                     "locationId": "gid://shopify/Location/73063170105",
                     "quantity": 0
                 }
@@ -623,7 +623,7 @@ def csv_to_quantities(csv_filename, mode='update'):
                 except ValueError:
                     variant_inv_qty = int(df.iloc[index]['Variant Inventory Qty'].replace(',', ''))
                 qty = {
-                    "inventoryItemId": df.iloc[index]['inventory_id'],
+                    "inventoryItemId": df.iloc[index]['inv_id'],
                     "locationId": "gid://shopify/Location/73063170105",
                     "quantity": variant_inv_qty
                 }
@@ -633,7 +633,7 @@ def csv_to_quantities(csv_filename, mode='update'):
     elif mode == 'reset':
         for index in df.index:
             qty = {
-                "inventoryItemId": df.iloc[index]['inventory_id'],
+                "inventoryItemId": df.iloc[index]['inv_id'],
                 "locationId": "gid://shopify/Location/73063170105",
                 "quantity": 0
             }
