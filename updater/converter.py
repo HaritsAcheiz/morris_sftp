@@ -7,6 +7,7 @@ import json
 from urllib.parse import quote, unquote
 from ast import literal_eval
 from html import unescape
+import math
 
 weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OUNCES'}
 tracker_mapper = {'shopify': True, '': False}
@@ -40,6 +41,16 @@ def get_title(title, alt_title):
 
     return result
 
+
+def get_price(wholesaleprice):
+    if (pd.isna(wholesaleprice)) | (wholesaleprice == 0):
+        result = 0
+    else:
+        result = round(float(math.ceil(wholesaleprice * 2)), 2) - 0.01
+
+    return result
+
+
 def generate_category(*args):
     cat_list = [x for x in list(args[0]) if str(x) != 'nan']
     if len(cat_list) == 0:
@@ -51,9 +62,10 @@ def generate_category(*args):
 
 def to_tags(theme):
     if (theme == '') | pd.isna(theme):
-        result = ''
+        result = 'morriscostumes'
     else:
         result = theme.replace(';', ',')
+        result += ',morriscostumes'
 
     return result
 
@@ -121,7 +133,7 @@ def to_shopify(morris_file_path):
     shopify_df['Variant Inventory Policy'] = 'deny'
     shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
     # shopify_df['Variant Price'] = morris_df['MapPrice']
-    shopify_df['Variant Price'] = morris_df['MapPrice']
+    shopify_df['Variant Price'] = morris_df['Price'].apply(get_price)
     shopify_df['Variant Compare At Price'] = ''
     shopify_df['Variant Requires Shipping'] = True
     shopify_df['Variant Taxable'] = True
@@ -538,7 +550,8 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
                 variant['optionValues'] = product_options
 
             try:
-                variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+                # variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
+                variant['price'] = df.iloc[index]['Variant Price']
             except:
                 variant['price'] = 0.00
 

@@ -53,14 +53,14 @@ def main():
     for update_df in chunked_df:
 
         # =========================================Get product_id by handle===============================================
-        handles = update_df['Unique Handle'].to_list()
-        product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
-        extracted_product_ids = [x['node'] for x in product_ids]
-        product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
-        product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
+        # handles = update_df['Unique Handle'].to_list()
+        # product_ids = sa.get_products_id_by_handle(client, handles=handles)['data']['products']['edges']
+        # extracted_product_ids = [x['node'] for x in product_ids]
+        # product_id_handle_df = pd.DataFrame.from_records(extracted_product_ids)
+        # product_id_handle_df.to_csv('data/update_product_ids.csv', index=False)
 
         # ========================================Fill create product_id =================================================
-        fill_product_id(update_df, product_id_filepath='data/update_product_ids.csv', mode='update')
+        # fill_product_id(update_df, product_id_filepath='data/update_product_ids.csv', mode='update')
 
         # ===============================Get variant_id and inventory id by product id=====================================
         update_df['id_number'] = update_df.apply(lambda x: x['id'].split('/')[-1], axis=1)
@@ -85,9 +85,9 @@ def main():
             created = import_status(client)
 
         # =====================================Update Shopify variant inv qty================================================
-        quantities = csv_to_quantities(csv_filename='data/update_product_variants_with_vids_invids.csv')
-        print(quantities)
-        sa.update_inventories(client, quantities=quantities)
+        # quantities = csv_to_quantities(csv_filename='data/update_product_variants_with_vids_invids.csv')
+        # print(quantities)
+        # sa.update_inventories(client, quantities=quantities)
 
 
 if __name__ == '__main__':
