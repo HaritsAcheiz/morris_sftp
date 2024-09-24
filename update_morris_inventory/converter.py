@@ -8,13 +8,44 @@ from urllib.parse import quote, unquote
 from ast import literal_eval
 from html import unescape
 import math
+from xml.etree import ElementTree as ET
 
 weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OUNCES'}
 tracker_mapper = {'shopify': True, '': False}
 
 
-def convert_to_shopify(file_path, file_type):
-    morris_df = pd.read_xml(file_path, xpath='//available')
+def convert_to_shopify(file_path, file_type='full'):
+    # Parse the XML file
+    tree = ET.parse(file_path)
+    root = tree.getroot()
+
+    # Extract data from the <available> elements
+    available_data = []
+    for available in root.findall('available'):
+        available_item = {
+            'activeStatus': available.find('activeStatus/code').text,
+            'baggable': available.find('baggable').text,
+            'gtin': available.find('gtin').text,
+            'loc': available.find('loc').text,
+            'part': available.find('part').text,
+            'qty': int(available.find('qty').text),
+            'sku': available.find('sku').text
+        }
+
+        # Extract data from the nested <detail> element
+        detail = available.find('detail')
+        available_item['desc'] = detail.find('desc').text
+        available_item['height'] = float(detail.find('height').text)
+        available_item['length'] = float(detail.find('length').text)
+        available_item['map'] = float(detail.find('map').text) if detail.find('map') is not None else None
+        available_item['price'] = float(detail.find('price').text)
+        available_item['weight'] = float(detail.find('weight').text)
+        available_item['width'] = float(detail.find('width').text)
+
+        available_data.append(available_item)
+
+    # Create the Pandas DataFrame
+    morris_df = pd.DataFrame(available_data)
     if file_type == 'full':
         # df.drop(columns=['AvailableBatch', 'Type', 'Date', 'available', 'activeStatus', 'code', 'baggable'])
         # df.iloc[:, range(len(df.columns))].to_csv('data/full_template.csv', index=False)
@@ -25,6 +56,9 @@ def convert_to_shopify(file_path, file_type):
         shopify_df['Variant Inventory Policy'] = 'deny'
         shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
         shopify_df['Variant Barcode'] = morris_df['gtin']
+        shopify_df['Title'] = morris_df['desc']
+        shopify_df['Variant Price'] = morris_df['price']
+        shopify_df['Variant Grams'] = morris_df['weight']
         shopify_df.fillna('', inplace=True)
         shopify_df.to_csv('data/morris_full_inventory_shopify.csv', index=False)
     # elif file_type == 'inventory':
@@ -700,7 +734,7 @@ def deduplicate_handles(df):
 
     return df
 
-# if __name__ == '__main__':
+if __name__ == '__main__':
     # to_shopify('data/All_Products_PWHSL.xlsx')
     #
     # product_df = pd.read_csv('data/create_products.csv')
@@ -713,3 +747,4 @@ def deduplicate_handles(df):
     #     print(df.head())
 
     # extract_video_url()
+    convert_to_shopify('data/AvailableBatch_Full_Product_Data_20240807_225146.xml')
