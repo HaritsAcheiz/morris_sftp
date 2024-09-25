@@ -14,6 +14,15 @@ weight_unit_mapper = {'lb': 'POUNDS', 'kg': 'KILOGRAMS', 'g': 'GRAMS', 'oz': 'OU
 tracker_mapper = {'shopify': True, '': False}
 
 
+def get_price(wholesaleprice):
+    if (pd.isna(wholesaleprice)) | (wholesaleprice == 0):
+        result = 0
+    else:
+        result = round(float(math.ceil(wholesaleprice * 2)), 2) - 0.01
+
+    return result
+
+
 def convert_to_shopify(file_path, file_type='full'):
     # Parse the XML file
     tree = ET.parse(file_path)
@@ -25,7 +34,7 @@ def convert_to_shopify(file_path, file_type='full'):
         available_item = {
             'activeStatus': available.find('activeStatus/code').text,
             'baggable': available.find('baggable').text,
-            'gtin': available.find('gtin').text,
+            'gtin': int(available.find('gtin').text),
             'loc': available.find('loc').text,
             'part': available.find('part').text,
             'qty': int(available.find('qty').text),
@@ -57,7 +66,8 @@ def convert_to_shopify(file_path, file_type='full'):
         shopify_df['Variant Inventory Fulfillment Service'] = 'manual'
         shopify_df['Variant Barcode'] = morris_df['gtin']
         shopify_df['Title'] = morris_df['desc']
-        shopify_df['Variant Price'] = morris_df['price']
+        shopify_df['Variant Price'] = morris_df['price'].apply(get_price)
+        shopify_df['Cost per item'] = morris_df['price']
         shopify_df['Variant Grams'] = morris_df['weight']
         shopify_df.fillna('', inplace=True)
         shopify_df.to_csv('data/morris_full_inventory_shopify.csv', index=False)
@@ -571,35 +581,35 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             variants = list()
             variant = dict()
-            variant['id'] = df.iloc[index]['variant_id']
-            variant['barcode'] = str(df.iloc[index]['Variant Barcode'])
-            if df.iloc[index]['Variant Compare At Price'] == '':
-                pass
-            else:
-                variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']), 2)
+            variant['id'] = df.iloc[index]['var_id']
+            # variant['barcode'] = str(df.iloc[index]['Variant Barcode'])
+            # if df.iloc[index]['Variant Compare At Price'] == '':
+            #     pass
+            # else:
+            #     variant['compareAtPrice'] = round(float(df.iloc[index]['Variant Compare At Price']), 2)
 
-            variant_measure = {'weight': {'unit': 'GRAMS', 'value': 0.0}}
-            try:
-                variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
-                variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
-            except:
-                pass
+            # variant_measure = {'weight': {'unit': 'GRAMS', 'value': 0.0}}
+            # try:
+            #     variant_measure['weight']['unit'] = weight_unit_mapper[df.iloc[index]['Variant Weight Unit']]
+            #     variant_measure['weight']['value'] = float(df.iloc[index]['Variant Grams'])
+            # except:
+            #     pass
 
-            variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
+            # variant['inventoryPolicy'] = df.iloc[index]['Variant Inventory Policy'].upper()
 
             var_inv_item = dict()
-            var_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
+            # var_inv_item['cost'] = str(df.iloc[index]['Cost per item'])
             var_inv_item['tracked'] = True
-            var_inv_item['measurement'] = variant_measure
+            # var_inv_item['measurement'] = variant_measure
             var_inv_item['requiresShipping'] = str_to_bool('true')
             var_inv_item['sku'] = df.iloc[index]['Variant SKU']
             var_inv_item['tracked'] = tracker_mapper[df.iloc[index]['Variant Inventory Tracker']]
             variant['inventoryItem'] = var_inv_item
 
-            product_options = [fill_opt_var(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
-            if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
-                product_options = [x for x in product_options if x is not None]
-                variant['optionValues'] = product_options
+            # product_options = [fill_opt_var(df.iloc[index][opt], df.iloc[index][opt.replace('Name', 'Value')]) for opt in opts]
+            # if (product_options[0] is not None) | (product_options[1] is not None) | (product_options[2] is not None):
+                # product_options = [x for x in product_options if x is not None]
+                # variant['optionValues'] = product_options
 
             try:
                 # variant['price'] = round(float(df.iloc[index]['Variant Price']), 2)
@@ -607,7 +617,6 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
             except:
                 variant['price'] = 0.00
 
-            variant['taxable'] = str_to_bool('true')
             variants.append(variant)
             data_dict['variants'] = variants
             datas.append(data_dict.copy())

@@ -1332,6 +1332,9 @@ class ShopifyApp:
                     id
                     sku
                 }
+                product{
+                    id
+                }
               }
             }
           }
@@ -1361,7 +1364,8 @@ class ShopifyApp:
                         await asyncio.sleep(delay)
                         continue  # Retry the request
 
-                    result = {'var_id': data['data']['productVariants']['edges'][0]['node']['id'],
+                    result = {'id': data['data']['productVariants']['edges'][0]['node']['product']['id'],
+                              'var_id': data['data']['productVariants']['edges'][0]['node']['id'],
                               'inv_id': data['data']['productVariants']['edges'][0]['node']['inventoryItem']['id'],
                               'sku': data['data']['productVariants']['edges'][0]['node']['inventoryItem']['sku']}
 
@@ -1376,7 +1380,8 @@ class ShopifyApp:
                     print(response.status_code)
                     print(data)
 
-                result = {'var_id': '',
+                result = {'id': '',
+                          'var_id': '',
                           'inv_id': '',
                           'sku': sku}
 

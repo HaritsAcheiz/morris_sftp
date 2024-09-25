@@ -1,3 +1,5 @@
+from pathlib import Path
+import shutil
 from sftp import connect_sftp, get_latest_files, download_file, list_directory
 import os
 from dotenv import load_dotenv
@@ -28,7 +30,11 @@ if __name__ == '__main__':
     username = os.getenv('MC_USER')
     password = os.getenv('MC_PASS')
     remote_path = '/'
-    local_path = './data'
+    local_path = Path('./data')
+    if local_path.exists():
+        shutil.rmtree(local_path)
+    local_path.mkdir(mode=0o777, parents=True, exist_ok=True)
+
     sftp = None
 
     # Download file from SFTP
@@ -55,7 +61,7 @@ if __name__ == '__main__':
         #                   os.path.join(local_path, latest_inventory))
         # else:
         #     print("No AvailableBatch_Inventory_Only file found")
-    #
+
     except Exception as e:
         print(f"An error occurred: {str(e)}")
     finally:
@@ -79,16 +85,18 @@ if __name__ == '__main__':
     client = sa.create_session()
 
     # ===========================================Get product_id by sku==================================================
-    # asyncio.run(sa.async_get_id_for_skus())
+    asyncio.run(sa.async_get_id_for_skus())
+
+    # =====================================Bulk update Shopify variant price================================================
+    csv_to_jsonl(csv_filename='data/morris_full_inventory_shopify_var_id_inv_id.csv', jsonl_filename='bulk_op_vars.jsonl', mode='vup')
+    staged_target = sa.generate_staged_target(client)
+    sa.upload_jsonl(staged_target=staged_target, jsonl_path="bulk_op_vars.jsonl")
+    sa.update_variants(client, staged_target=staged_target)
+    created = False
+    while not created:
+        created = import_status(client)
 
     # ======================================Update Shopify variant inv qty==========================================
-    chunked_quantities = csv_to_quantities(csv_filename='./data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')
+    chunked_quantities = csv_to_quantities(csv_filename='data/morris_full_inventory_shopify_var_id_inv_id.csv', mode='update')
     for quantities in chunked_quantities:
         sa.update_inventories(client, quantities=quantities)
-
-
-
-
-
-
-
