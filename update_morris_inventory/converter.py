@@ -34,7 +34,8 @@ def convert_to_shopify(file_path, file_type='full'):
         available_item = {
             'activeStatus': available.find('activeStatus/code').text,
             'baggable': available.find('baggable').text,
-            'gtin': int(available.find('gtin').text),
+            # 'gtin': int(available.find('gtin').text),
+            'gtin': available.find('gtin').text if available.find('gtin') is not None else None,
             'loc': available.find('loc').text,
             'part': available.find('part').text,
             'qty': int(available.find('qty').text),
