@@ -12,6 +12,7 @@ load_dotenv()
 
 sa = None
 
+
 def import_status(client):
     # Check Bulk Import status
     print('Checking')
@@ -24,6 +25,7 @@ def import_status(client):
         created = False
 
     return created
+
 
 if __name__ == '__main__':
     hostname = os.getenv('MC_HOST')
