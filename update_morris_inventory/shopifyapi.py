@@ -1320,7 +1320,6 @@ class ShopifyApp:
 
         return response.json()
 
-
     async def get_id_by_sku(self, client: httpx.AsyncClient, sku: str, semaphore: asyncio.Semaphore) -> Dict[str, str | None]:
         query = """
         query getProductHandleBySKU($query: String!) {
@@ -1387,7 +1386,6 @@ class ShopifyApp:
 
                 return result
 
-
     async def get_id_for_skus(self, skus: List[str]) -> List[Dict[str, str | None]]:
         semaphore = asyncio.Semaphore(10)
         async with httpx.AsyncClient() as client:
@@ -1395,12 +1393,22 @@ class ShopifyApp:
             results = await asyncio.gather(*tasks)
         return results
 
-
     async def async_get_id_for_skus(self):
         morris_df = pd.read_csv('./data/morris_full_inventory_shopify.csv')
         skus = morris_df['Variant SKU'].to_list()
         records = await self.get_id_for_skus(skus)
-        shopify_df = pd.DataFrame.from_records(records)
+
+        # Check if records is None or contains invalid elements
+        if records is None:
+            print("Error: 'records' is None.")
+        elif isinstance(records, list) and all(isinstance(record, dict) for record in records):
+        # Filter out any None elements and create the DataFrame
+            filtered_records = [record for record in records if record is not None]
+            shopify_df = pd.DataFrame.from_records(filtered_records)
+        else:
+            print("Error: 'records' should be a non-empty list of dictionaries.")
+            shopify_df = pd.DataFrame()  # Return an empty DataFrame as a fallback
+
         result_df = pd.merge(morris_df, shopify_df, how='left', left_on='Variant SKU', right_on='sku')
         result_df.to_csv('./data/morris_full_inventory_shopify_var_id_inv_id.csv', index=False)
 
