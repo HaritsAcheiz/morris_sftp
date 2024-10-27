@@ -95,9 +95,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, 'variables':variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def create_products(self, client, staged_target):
         print('Creating products...')
@@ -147,9 +147,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
 
     def create_variants(self, client, staged_target):
@@ -200,9 +200,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
 
     def update_variants(self, client, staged_target):
@@ -253,9 +253,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def update_inventories(self, client, quantities):
         mutation = '''
@@ -283,9 +283,9 @@ class ShopifyApp:
             try:
                 response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
+                # print(response)
+                # print(response.json())
+                # print('')
                 break
             except Exception as e:
                 print(e)
@@ -323,9 +323,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
         return response.json()
 
 
@@ -343,9 +343,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
 
     ## Product
@@ -366,9 +366,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def query_locations(self, client):
         print("Fetching product data...")
@@ -386,9 +386,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -417,9 +417,9 @@ class ShopifyApp:
         variables = {'query': "handle:{}".format(f_handles)}
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables': variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -452,9 +452,9 @@ class ShopifyApp:
         '''
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -483,9 +483,9 @@ class ShopifyApp:
         variables = {'query': "sku:{}".format(skus)}
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -514,9 +514,9 @@ class ShopifyApp:
         '''
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, 'variables':variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -538,9 +538,9 @@ class ShopifyApp:
         '''
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -571,9 +571,9 @@ class ShopifyApp:
             try:
                 response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
+                # print(response)
+                # print(response.json())
+                # print('')
                 break
             except Exception as e:
                 print(e)
@@ -627,9 +627,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
 
     # Bulk operation support
@@ -688,7 +688,7 @@ class ShopifyApp:
             data_dict['media'] = {'originalSource': f"https:{df.iloc[index]['Image Src']}", 'mediaContentType': 'IMAGE'}
 
             datas.append(data_dict.copy())
-        print(datas)
+        # print(datas)
         with open(os.path.join(jsonl_filename), 'w') as jsonlfile:
             for item in datas:
                 json.dump(item, jsonlfile)
@@ -707,9 +707,9 @@ class ShopifyApp:
         # with httpx.Client(timeout=None, follow_redirects=True) as sess:
         response = httpx.post(url, files=files)
 
-        print(response)
-        print(response.content)
-        print('')
+        # print(response)
+        # print(response.content)
+        # print('')
 
     def webhook_subscription(self, client):
         print("Subscribing webhook...")
@@ -736,9 +736,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def pool_operation_status(self,client):
         print("Pooling operation status...")
@@ -760,9 +760,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -824,9 +824,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def publish_collection(self, client):
         print('Publishing collection...')
@@ -854,9 +854,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def get_collections(self, client, cursor=None):
         print('Getting collection list...')
@@ -898,9 +898,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": query, "variables": variables})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -988,7 +988,7 @@ class ShopifyApp:
                                    # json={'query': query})
             try:
                 result = response.json()
-                print(result['data'])
+                # print(result['data'])
                 break
             except:
                 retries += 1
@@ -1044,14 +1044,14 @@ class ShopifyApp:
             ]
         }
 
-        print(variables)
+        # print(variables)
         while 1:
             try:
                 response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
+                # print(response)
+                # print(response.json())
+                # print('')
                 break
             except Exception as e:
                 print(e)
@@ -1078,7 +1078,7 @@ class ShopifyApp:
                                    json={'query': query, 'variables': variables})
             try:
                 result = response.json()
-                print(result)
+                # print(result)
                 break
             except Exception as e:
                 print(e)
@@ -1128,9 +1128,9 @@ class ShopifyApp:
             try:
                 response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                        json={'query': mutation, 'variables': variables})
-                print(response)
-                print(response.json())
-                print('')
+                # print(response)
+                # print(response.json())
+                # print('')
                 break
             except Exception as e:
                 print(e)
@@ -1150,9 +1150,9 @@ class ShopifyApp:
 
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
                                json={"query": query})
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
         print("Access scopes collected!")
 
     def query_product_by_handle(self, client, handle):
@@ -1177,13 +1177,11 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
                                    json={'query': query, 'variables': variables})
 
-        print(response)
-        print(response.json())
-        print('')
-
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
-
 
     def import_status(self, client):
         # Check Bulk Import status
@@ -1197,7 +1195,6 @@ class ShopifyApp:
             created = False
 
         return created
-
 
     def publish_unpublish(self, client, staged_target):
         print('Publishing products...')
@@ -1245,10 +1242,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2024-07/graphql.json',
                                json={"query": mutation, "variables": variables})
 
-        print(response)
-        print(response.json())
-        print('')
-
+        # print(response)
+        # print(response.json())
+        # print('')
 
     def remove_scheduled_publish_date_updated(self, client, product_id, publication_id=None):
         print(f'Removing scheduled publish date for product {product_id}...')
@@ -1282,7 +1278,7 @@ class ShopifyApp:
                                json={"query": mutation, "variables": variables})
 
         result = response.json()
-        print(json.dumps(result, indent=2))
+        # print(json.dumps(result, indent=2))
 
         if 'errors' in result:
             print(f"Error: {result['errors']}")
@@ -1314,9 +1310,9 @@ class ShopifyApp:
         response = client.post(f'https://{self.store_name}.myshopify.com/admin/api/2023-07/graphql.json',
                                    json={'query': query})
 
-        print(response)
-        print(response.json())
-        print('')
+        # print(response)
+        # print(response.json())
+        # print('')
 
         return response.json()
 
@@ -1344,7 +1340,7 @@ class ShopifyApp:
         for attempt in range(3):
             async with semaphore:
                 try:
-                    print(f"Sending query for SKU: {sku}")  # Log the SKU being queried
+                    # print(f"Sending query for SKU: {sku}")  # Log the SKU being queried
                     response = await client.post(
                         f"https://{os.getenv('STORE_NAME')}.myshopify.com/admin/api/2024-07/graphql.json",
                         headers={
@@ -1397,18 +1393,8 @@ class ShopifyApp:
         morris_df = pd.read_csv('./data/morris_full_inventory_shopify.csv')
         skus = morris_df['Variant SKU'].to_list()
         records = await self.get_id_for_skus(skus)
-
-        # Check if records is None or contains invalid elements
-        if records is None:
-            print("Error: 'records' is None.")
-        elif isinstance(records, list) and all(isinstance(record, dict) for record in records):
-        # Filter out any None elements and create the DataFrame
-            filtered_records = [record for record in records if record is not None]
-            shopify_df = pd.DataFrame.from_records(filtered_records)
-        else:
-            print("Error: 'records' should be a non-empty list of dictionaries.")
-            shopify_df = pd.DataFrame()  # Return an empty DataFrame as a fallback
-
+        filtered_records = [record for record in records if record is not None]
+        shopify_df = pd.DataFrame.from_records(filtered_records)
         result_df = pd.merge(morris_df, shopify_df, how='left', left_on='Variant SKU', right_on='sku')
         result_df.to_csv('./data/morris_full_inventory_shopify_var_id_inv_id.csv', index=False)
 

@@ -491,15 +491,15 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             media_list = []
             media = dict()
-            print(df.iloc[index]['Link'])
-            print(df.iloc[index]['Image Alt Text'])
+            # print(df.iloc[index]['Link'])
+            # print(df.iloc[index]['Image Alt Text'])
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
 
                 links = literal_eval(df.iloc[index]['Link'])
                 alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
-                print(links)
+                # print(links)
                 for i in range(0, len(links)):
                     try:
                         media['alt'] = alt_texts[i]
@@ -553,15 +553,15 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
 
             media_list = []
             media = dict()
-            print(df.iloc[index]['Link'])
-            print(df.iloc[index]['Image Alt Text'])
+            # print(df.iloc[index]['Link'])
+            # print(df.iloc[index]['Image Alt Text'])
             if (pd.isna(df.iloc[index]['Link'])) | (df.iloc[index]['Link'] == ''):
                 media_list.append(media)
             else:
 
                 links = literal_eval(df.iloc[index]['Link'])
                 alt_texts = literal_eval(df.iloc[index]['Image Alt Text'])
-                print(links)
+                # print(links)
                 for i in range(0, len(links)):
                     try:
                         media['alt'] = alt_texts[i]
@@ -625,7 +625,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
     elif mode == 'ap':
         datas = []
         for index in df.index:
-            print(df.iloc[index])
+            # print(df.iloc[index])
             data_dict = {"input": dict(), "media": list()}
             data_dict['input']['id'] = df.iloc[index]['id']
             data_dict['input']['status'] = 'ACTIVE'
@@ -650,7 +650,7 @@ def csv_to_jsonl(csv_filename, jsonl_filename, mode='pc'):
     else:
         print('Mode value is not available')
 
-    print(datas)
+    # print(datas)
 
     if datas:
         with open(jsonl_filename, 'w') as jsonlfile:
